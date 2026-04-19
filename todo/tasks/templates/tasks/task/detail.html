@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {{object}}
+{% endblock title %}
+
+
+
+{% block content %}
+    <div class="task" data-id="{{task.id}}">
+        <h1>{{object}}</h1>
+        <p>{{object.description}}</p>
+        <p>{{object.task_type}}</p>
+        <p>{{object.created}}</p>
+    </div>
+    <div class="checkbox">
+        {% if object.completed %}
+            <p data-markText="Позначити завдання виконаним">Позначити завдання невиконаним </p>
+            <input type="checkbox" checked>
+        {% else %}
+            <p data-markText="Позначити завдання невиконаним">Позначити завдання виконаним</p>
+            <input type="checkbox">
+        {% endif %}
+    </div>
+        
+{% endblock content %}
+
+
+{% block js %}
+    <script 
+        src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js">
+    </script>
+    <script src="{% static 'tasks/js/mark_task.js' %}"></script>
+{% endblock js %}
+    
+    
+    
