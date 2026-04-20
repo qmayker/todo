@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+
+{% block title %}
+    Create task
+{% endblock title %}
+
+
+{% block content %}
+    {{model}}
+    <form method="post">{% csrf_token %}
+        {{task_form}}
+        {{form}}  
+        <input type="submit" value="Create task">
+    </form>
+{% endblock content %}
+
+
+{% block js %}
+    <script>
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.cookie = "django_timezone=" + timezone;
+    </script>
+{% endblock js %}
+    
+    
+    

@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+
 # Create your models here.
 
 
@@ -26,16 +27,16 @@ class Task(models.Model):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
 
 
-class OneTimeTask(models.Model):
-    name = "Одноразовий"
+class OneTime(models.Model):
     task = models.OneToOneField(
-        Task, on_delete=models.CASCADE, related_name="one_time", null=True
+        Task, on_delete=models.CASCADE, related_name="onetime", null=True
     )
     expires_at = models.DateTimeField(null=True)
 
     def clean(self):
         if self.expires_at <= timezone.now():
+            print('error')
             raise ValidationError('Time error')
 
     def __str__(self):
-        return self.name
+        return "Одноразовий"

@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .models import Task, OneTimeTask
+from .models import Task, OneTime
 
 # Register your models here.
 
 class OneTimeTaskInline(admin.TabularInline):
-    model = OneTimeTask
+    model = OneTime
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
