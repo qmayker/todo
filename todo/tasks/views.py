@@ -3,7 +3,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.apps import apps
 from django.http import HttpResponseNotFound, HttpRequest
 from django.forms import modelform_factory, ModelForm, widgets
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
 from .models import Task
 from .forms import TaskForm
 
@@ -33,6 +34,7 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
 class TaskCreateView(LoginRequiredMixin, View):
     types = "onetime"
     template_name = "tasks/task/create.html"
+    success_url = reverse_lazy("tasks:list")
 
     def get_form(self, model) -> type[ModelForm]:
         form = modelform_factory(
@@ -64,36 +66,41 @@ class TaskCreateView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, task_type: str):
         task_form = TaskForm()
-        task_type_form = self.form_class()
+        type_form = self.form_class()
         return render(
             request,
             self.template_name,
             context={
                 "task_form": task_form,
-                "form": task_type_form,
+                "form": type_form,
                 "model": self.model,
             },
         )
 
     def post(self, request: HttpRequest, task_type: str):
         task_form = TaskForm(request.POST)
-        task_type_form = self.form_class(request.POST)
-        if task_form.is_valid() and task_type_form.is_valid():
+        type_form = self.form_class(request.POST)
+        if task_form.is_valid() and type_form.is_valid():
             task = task_form.save(commit=False)
             task.user = self.request.user
             task.save()
-            task_type_obj = task_type_form.save(commit=False)
-            task_type_obj.task = task
-            task_type_obj.save()
+            type_obj = type_form.save(commit=False)
+            type_obj.task = task
+            type_obj.save()
 
-            #Django messages - task saved
+            return redirect(self.success_url)
+
+            # Fix required fields
+            # Todo - django messages when created.
 
         return render(
             request,
             self.template_name,
             context={
                 "task_form": task_form,
-                "form": task_type_form,
+                "form": type_form,
                 "model": self.model,
             },
         )
+    
+    #Todo - update task

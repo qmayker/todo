@@ -1,8 +1,6 @@
-import zoneinfo
 from django.views.generic import CreateView
-from django.contrib.auth import get_user_model, forms
+from django.contrib.auth import forms
 from django.urls import reverse_lazy
-from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils import timezone
 from .models import UserProfile
@@ -20,5 +18,3 @@ class UserCreateView(CreateView):
             user=self.object, timezone=tzname or settings.TIME_ZONE
         )
         return response
-
-        # Брати активну таймзону.

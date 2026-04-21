@@ -11,7 +11,7 @@ from django.utils import timezone
 class Task(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    description = models.TextField(max_length=500, null=True)
+    description = models.TextField(max_length=500, null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     completed = models.BooleanField(default=False)
@@ -31,7 +31,7 @@ class OneTime(models.Model):
     task = models.OneToOneField(
         Task, on_delete=models.CASCADE, related_name="onetime", null=True
     )
-    expires_at = models.DateTimeField(null=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
 
     def clean(self):
         if self.expires_at <= timezone.now():
