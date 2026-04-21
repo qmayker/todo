@@ -1,5 +1,6 @@
 from django.views.generic import ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.apps import apps
 from django.http import HttpResponseNotFound, HttpRequest
 from django.forms import modelform_factory, ModelForm, widgets
@@ -87,7 +88,9 @@ class TaskCreateView(LoginRequiredMixin, View):
             type_obj = type_form.save(commit=False)
             type_obj.task = task
             type_obj.save()
-
+            messages.add_message(
+                request, messages.SUCCESS, 'Task has been created'
+            )
             return redirect(self.success_url)
 
             # Fix required fields
