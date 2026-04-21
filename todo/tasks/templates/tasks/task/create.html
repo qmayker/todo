@@ -15,13 +15,6 @@
     </form>
 {% endblock content %}
 
-
-{% block js %}
-    <script>
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        document.cookie = "django_timezone=" + timezone;
-    </script>
-{% endblock js %}
     
     
     

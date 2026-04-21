@@ -30,7 +30,7 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
         return queryset
 
 
-class TaskCreateView(View):
+class TaskCreateView(LoginRequiredMixin, View):
     types = "onetime"
     template_name = "tasks/task/create.html"
 
@@ -62,26 +62,38 @@ class TaskCreateView(View):
         self.form_class = self.get_form(model)
         return super().dispatch(request, *args, **kwargs)
 
-        # Переробити через супер.діспатч, пофіксити МРО.
-
-    def get(self, request:HttpRequest, task_type:str):
+    def get(self, request: HttpRequest, task_type: str):
         task_form = TaskForm()
         task_type_form = self.form_class()
         return render(
             request,
             self.template_name,
-            context={"task_form": task_form, "form": task_type_form, "model": self.model},
+            context={
+                "task_form": task_form,
+                "form": task_type_form,
+                "model": self.model,
+            },
         )
-    
-    def post(self, request:HttpRequest, task_type:str):
+
+    def post(self, request: HttpRequest, task_type: str):
         task_form = TaskForm(request.POST)
         task_type_form = self.form_class(request.POST)
         if task_form.is_valid() and task_type_form.is_valid():
-            print('q')
-            print(task_type_form.cleaned_data)
-            ...
+            task = task_form.save(commit=False)
+            task.user = self.request.user
+            task.save()
+            task_type_obj = task_type_form.save(commit=False)
+            task_type_obj.task = task
+            task_type_obj.save()
+
+            #Django messages - task saved
+
         return render(
             request,
             self.template_name,
-            context={"task_form": task_form, "form": task_type_form, "model": self.model}
+            context={
+                "task_form": task_form,
+                "form": task_type_form,
+                "model": self.model,
+            },
         )

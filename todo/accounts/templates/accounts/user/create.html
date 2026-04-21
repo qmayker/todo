@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+
+{% block title %}
+    Create user
+{% endblock title %}
+
+
+{% block content %}
+    <div class="registration">
+        <form method="post">{% csrf_token %}
+            {{form.as_p}}
+            <input type="submit" value="register">
+        </form>
+    </div>
+{% endblock content %}
+
+{% block js %}
+    <script>
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log(timezone);
+        document.cookie = "django_timezone=" + timezone;
+    </script>
+{% endblock js %}
+    
+    

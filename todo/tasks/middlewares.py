@@ -9,7 +9,10 @@ class TimeZoneMiddleware:
 
     def __call__(self, request: HttpRequest):
         try:
-            tzname = request.COOKIES.get("django_timezone")
+            tzname = None
+            if request.user.is_authenticated:
+                tzname = request.user.profile.timezone
+            tzname = tzname or request.COOKIES.get("django_timezone")
             if tzname:
                 timezone.activate(zoneinfo.ZoneInfo(tzname))
             else:
@@ -17,5 +20,3 @@ class TimeZoneMiddleware:
         except Exception:
             timezone.deactivate()
         return self.get_response(request)
-
-        #Todo - профіль користувача, реєстрація і створення профілю.

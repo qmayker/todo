@@ -35,8 +35,7 @@ class OneTime(models.Model):
 
     def clean(self):
         if self.expires_at <= timezone.now():
-            print('error')
             raise ValidationError('Time error')
 
     def __str__(self):
-        return "Одноразовий"
+        return "Onetime task"
