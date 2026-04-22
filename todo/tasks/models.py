@@ -3,6 +3,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from zoneinfo import ZoneInfo
 
 
 # Create your models here.
@@ -32,6 +33,13 @@ class OneTime(models.Model):
         Task, on_delete=models.CASCADE, related_name="onetime", null=True
     )
     expires_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.expires_at:
+            utc_time = self.expires_at.astimezone(ZoneInfo("UTC"))
+            print(utc_time, self.expires_at)
+            self.expires_at = utc_time
+        super().save(*args, **kwargs)
 
     def clean(self):
         if not self.expires_at:

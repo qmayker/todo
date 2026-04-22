@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: todo
+      POSTGRES_USER: qmayker
+      POSTGRES_PASSWORD: 101210
+  redis:
+    image: redis

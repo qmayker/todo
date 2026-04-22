@@ -30,6 +30,11 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
         queryset = super().get_queryset()
         queryset = queryset.filter(user=self.request.user)
         return queryset
+    
+    def get(self, request, *args, **kwargs):
+        task = self.get_object()
+        print(task._meta.related_objects)
+        return super().get(request, *args, **kwargs)
 
 
 class TaskCreateView(LoginRequiredMixin, View):
@@ -93,9 +98,6 @@ class TaskCreateView(LoginRequiredMixin, View):
             )
             return redirect(self.success_url)
 
-            # Fix required fields
-            # Todo - django messages when created.
-
         return render(
             request,
             self.template_name,
@@ -106,4 +108,4 @@ class TaskCreateView(LoginRequiredMixin, View):
             },
         )
     
-    #Todo - update task
+    #Todo - update task, filter tasks by days. reccurence tasks

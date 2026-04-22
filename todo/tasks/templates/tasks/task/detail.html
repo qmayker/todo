@@ -11,8 +11,7 @@
     <div class="task" data-id="{{task.id}}">
         <h1>{{object}}</h1>
         <p>{{object.description}}</p>
-        <p>{{object.task_type}}</p>
-        <p>{{object.created}}</p>
+        {% include 'tasks/task_type/one_time.html' %}
     </div>
     <div class="checkbox">
         {% if object.completed %}
