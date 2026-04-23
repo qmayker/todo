@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ValidationError
@@ -16,23 +18,36 @@ class Task(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     completed = models.BooleanField(default=False)
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        # limit_choices_to={},
+        null=True,
+        related_name='task'
+    )
+    object_id = models.PositiveBigIntegerField(null=True)
+    content_object = GenericForeignKey("content_type", "object_id")
 
     class Meta:
         ordering = ["-created"]
         indexes = [models.Index(fields=["-created"])]
+        constraints = [
+            models.UniqueConstraint(fields=['content_type', 'object_id'], name='content type unique')
+        ]
 
     def __str__(self):
         return self.name
 
     def get_absolute_url(self):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
+    
+    # def clean(self):
+    #     if self.content_object.expires_at
 
 
 class OneTime(models.Model):
-    task = models.OneToOneField(
-        Task, on_delete=models.CASCADE, related_name="onetime", null=True
-    )
     expires_at = models.DateTimeField(null=True, blank=True)
+    task = GenericRelation(Task)
 
     def save(self, *args, **kwargs):
         if self.expires_at:

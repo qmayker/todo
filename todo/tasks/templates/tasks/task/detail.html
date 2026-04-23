@@ -13,7 +13,7 @@
         <p>{{object.description}}</p>
         {%get_model_name object_type as type_name%}
         <p>{{type_name}}</p>
-        {% include 'tasks/task_type/one_time.html' %}
+        {% include type_name|get_path with object=object_type %}
     </div>
     <div class="checkbox">
         {% if object.completed %}

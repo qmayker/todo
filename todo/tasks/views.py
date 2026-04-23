@@ -2,10 +2,11 @@ from django.views.generic import ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.apps import apps
-from django.http import HttpResponseNotFound, HttpRequest
+from django.http import HttpResponseNotFound, HttpRequest, HttpResponseServerError
 from django.forms import modelform_factory, ModelForm, widgets
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.db.models.fields.reverse_related import OneToOneRel
 from .models import Task
 from .forms import TaskForm
 
@@ -28,13 +29,15 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.filter(user=self.request.user)
+        queryset = queryset.filter(user=self.request.user).prefetch_related(
+            "content_object"
+        )
         return queryset
-    
-    def get(self, request, *args, **kwargs):
-        task = self.get_object()
-        print(task._meta.related_objects)
-        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['object_type'] = self.object.content_object
+        return context
 
 
 class TaskCreateView(LoginRequiredMixin, View):
@@ -87,15 +90,14 @@ class TaskCreateView(LoginRequiredMixin, View):
         task_form = TaskForm(request.POST)
         type_form = self.form_class(request.POST)
         if task_form.is_valid() and type_form.is_valid():
+            type_obj = type_form.save(commit=False)
+            type_obj.save()
             task = task_form.save(commit=False)
             task.user = self.request.user
+            task.content_object = type_obj
             task.save()
-            type_obj = type_form.save(commit=False)
-            type_obj.task = task
-            type_obj.save()
-            messages.add_message(
-                request, messages.SUCCESS, 'Task has been created'
-            )
+            
+            messages.add_message(request, messages.SUCCESS, "Task has been created")
             return redirect(self.success_url)
 
         return render(
@@ -107,5 +109,5 @@ class TaskCreateView(LoginRequiredMixin, View):
                 "model": self.model,
             },
         )
-    
-    #Todo - update task, filter tasks by days. reccurence tasks
+
+    # Todo - update task, filter tasks by days. reccurence tasks

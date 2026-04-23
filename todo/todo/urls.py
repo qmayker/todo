@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
+from debug_toolbar.toolbar import debug_toolbar_urls
 from django.conf.urls.static import static
 
 urlpatterns = [
@@ -25,7 +26,7 @@ urlpatterns = [
     path("tasks/", include("tasks.urls", namespace="tasks")),
     path("api/", include("tasks.api.urls", namespace="api")),
     path("accounts/", include("accounts.urls", namespace="accounts")),
-]
+] + debug_toolbar_urls()
 
 if settings.DEBUG:
     ...

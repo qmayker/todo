@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "tasks.apps.TasksConfig",
     "accounts.apps.AccountsConfig",
     "rest_framework",
+    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
@@ -51,6 +52,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "tasks.middlewares.TimeZoneMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "todo.urls"
@@ -119,3 +121,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+
+
+# Templates
+
+TASK_TYPE_PATH = 'tasks/task_type/'
