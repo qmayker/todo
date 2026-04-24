@@ -21,7 +21,6 @@ class Task(models.Model):
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
-        # limit_choices_to={},
         null=True,
         related_name='task'
     )
@@ -40,13 +39,11 @@ class Task(models.Model):
 
     def get_absolute_url(self):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
-    
-    # def clean(self):
-    #     if self.content_object.expires_at
 
 
 class OneTime(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
+    expired = models.BooleanField(default=False)
     task = GenericRelation(Task)
 
     def save(self, *args, **kwargs):
