@@ -6,7 +6,7 @@ from django.http import HttpResponseNotFound, HttpRequest
 from django.forms import modelform_factory, ModelForm, widgets
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-from .models import Task
+from .models import Task, OneTime
 from .forms import TaskForm
 from todo.celery import check_task_status
 
@@ -76,7 +76,6 @@ class TaskCreateView(LoginRequiredMixin, View):
     def get(self, request: HttpRequest, task_type: str):
         task_form = TaskForm()
         type_form = self.form_class()
-        check_task_status.delay()
         return render(
             request,
             self.template_name,

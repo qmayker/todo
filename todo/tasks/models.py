@@ -19,10 +19,7 @@ class Task(models.Model):
     updated = models.DateTimeField(auto_now=True)
     completed = models.BooleanField(default=False)
     content_type = models.ForeignKey(
-        ContentType,
-        on_delete=models.CASCADE,
-        null=True,
-        related_name='task'
+        ContentType, on_delete=models.CASCADE, null=True, related_name="task"
     )
     object_id = models.PositiveBigIntegerField(null=True)
     content_object = GenericForeignKey("content_type", "object_id")
@@ -31,7 +28,9 @@ class Task(models.Model):
         ordering = ["-created"]
         indexes = [models.Index(fields=["-created"])]
         constraints = [
-            models.UniqueConstraint(fields=['content_type', 'object_id'], name='content type unique')
+            models.UniqueConstraint(
+                fields=["content_type", "object_id"], name="content type unique"
+            )
         ]
 
     def __str__(self):
@@ -40,16 +39,26 @@ class Task(models.Model):
     def get_absolute_url(self):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
 
+    def delete(self, using=..., keep_parents=...):
+        print('DELETE')
+        obj = self.content_object
+        print(obj)
+        r = super().delete(using, keep_parents)
+        if obj:
+            obj.delete()
+        return r
+    
+        #override with signals
+
 
 class OneTime(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     expired = models.BooleanField(default=False)
-    task = GenericRelation(Task)
+    task = GenericRelation(Task, related_query_name="onetime")
 
     def save(self, *args, **kwargs):
         if self.expires_at:
             utc_time = self.expires_at.astimezone(ZoneInfo("UTC"))
-            print(utc_time, self.expires_at)
             self.expires_at = utc_time
         super().save(*args, **kwargs)
 
