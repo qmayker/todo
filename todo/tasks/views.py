@@ -2,13 +2,13 @@ from django.views.generic import ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.apps import apps
-from django.http import HttpResponseNotFound, HttpRequest, HttpResponseServerError
+from django.http import HttpResponseNotFound, HttpRequest
 from django.forms import modelform_factory, ModelForm, widgets
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-from django.db.models.fields.reverse_related import OneToOneRel
 from .models import Task
 from .forms import TaskForm
+from todo.celery import check_task_status
 
 # Create your views here.
 
@@ -76,6 +76,7 @@ class TaskCreateView(LoginRequiredMixin, View):
     def get(self, request: HttpRequest, task_type: str):
         task_form = TaskForm()
         type_form = self.form_class()
+        check_task_status.delay()
         return render(
             request,
             self.template_name,

@@ -130,3 +130,7 @@ INTERNAL_IPS = [
 # Templates
 
 TASK_TYPE_PATH = 'tasks/task_type/'
+
+# Celery 
+
+CELERY_BROKER_URL = "redis://redis:6379/0"

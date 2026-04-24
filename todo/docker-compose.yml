@@ -5,6 +5,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis
     volumes:
       - .:/app
   db:
@@ -15,3 +16,20 @@ services:
       POSTGRES_PASSWORD: 101210
   redis:
     image: redis
+  celery:
+    build: .
+    command: celery -A todo worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+      - redis
+  beat:
+    build: .
+    command: celery -A todo beat --loglevel=INFO
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+      - redis
+    
