@@ -12,7 +12,7 @@ class TaskInline(GenericTabularInline):
 @admin.register(OneTime)
 class OneTimeAdmin(admin.ModelAdmin):
     list_display = ['expires_at']
-    list_filter = ['expires_at']
+    list_filter = ['expires_at', 'expired']
     inlines = [TaskInline]
 
 
