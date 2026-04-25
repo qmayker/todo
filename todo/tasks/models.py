@@ -5,10 +5,6 @@ from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from zoneinfo import ZoneInfo
-
-
-# Create your models here.
 
 
 class Task(models.Model):
@@ -26,10 +22,14 @@ class Task(models.Model):
 
     class Meta:
         ordering = ["-created"]
-        indexes = [models.Index(fields=["-created"])]
+        indexes = [
+            models.Index(fields=["-created"]),
+            models.Index(fields=["user", "completed"]),
+        ]
         constraints = [
             models.UniqueConstraint(
-                fields=["content_type", "object_id"], name="content type unique"
+                fields=["content_type", "object_id"],
+                name="unique_content_type_object_id",
             )
         ]
 
@@ -40,15 +40,15 @@ class Task(models.Model):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
 
     def delete(self, using=..., keep_parents=...):
-        print('DELETE')
+        print("DELETE")
         obj = self.content_object
         print(obj)
         r = super().delete(using, keep_parents)
         if obj:
             obj.delete()
         return r
-    
-        #override with signals
+
+        # override with signals
 
 
 class OneTime(models.Model):
@@ -57,9 +57,8 @@ class OneTime(models.Model):
     task = GenericRelation(Task, related_query_name="onetime")
 
     def save(self, *args, **kwargs):
-        if self.expires_at:
-            utc_time = self.expires_at.astimezone(ZoneInfo("UTC"))
-            self.expires_at = utc_time
+        if self.expires_at and timezone.is_naive(self.expires_at):
+            self.expires_at = timezone.make_aware(self.expires_at)
         super().save(*args, **kwargs)
 
     def clean(self):
@@ -70,3 +69,6 @@ class OneTime(models.Model):
 
     def __str__(self):
         return "Onetime task"
+
+
+# Add new repeatable model
