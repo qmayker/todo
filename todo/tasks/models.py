@@ -39,17 +39,6 @@ class Task(models.Model):
     def get_absolute_url(self):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
 
-    def delete(self, using=..., keep_parents=...):
-        print("DELETE")
-        obj = self.content_object
-        print(obj)
-        r = super().delete(using, keep_parents)
-        if obj:
-            obj.delete()
-        return r
-
-        # override with signals
-
 
 class OneTime(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
@@ -69,6 +58,3 @@ class OneTime(models.Model):
 
     def __str__(self):
         return "Onetime task"
-
-
-# Add new repeatable model

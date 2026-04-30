@@ -6,9 +6,11 @@ from django.http import HttpResponseNotFound, HttpRequest
 from django.forms import modelform_factory, ModelForm, widgets
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.db.models import QuerySet, Q
+from django.utils import timezone
 from .models import Task, OneTime
 from .forms import TaskForm
-from todo.celery import check_task_status
+
 
 # Create your views here.
 
@@ -19,8 +21,31 @@ class TaskListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        qs.filter(user=self.request.user)
+        qs = qs.filter(user=self.request.user)
         return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs: QuerySet[Task] = context["object_list"]
+        completed = qs.filter(completed=True)
+        today_date = timezone.now().date()
+        expired = qs.filter(onetime__expired=True)
+        all_today = qs.filter(
+            Q(
+                onetime__expires_at__date=today_date,
+            )
+        )
+        todo_today = all_today.filter(onetime__expired=False)
+        context.update(
+            {
+                "object_expired": expired,
+                "object_completed": completed,
+                "object_all": all_today,
+                "object_todo": todo_today,
+            }
+        )
+
+        return context
 
 
 class TaskDetailView(LoginRequiredMixin, DetailView):
@@ -36,7 +61,7 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['object_type'] = self.object.content_object
+        context["object_type"] = self.object.content_object
         return context
 
 
@@ -96,7 +121,7 @@ class TaskCreateView(LoginRequiredMixin, View):
             task.user = self.request.user
             task.content_object = type_obj
             task.save()
-            
+
             messages.add_message(request, messages.SUCCESS, "Task has been created")
             return redirect(self.success_url)
 
