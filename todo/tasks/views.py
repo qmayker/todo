@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.db.models import QuerySet, Q
 from django.utils import timezone
-from .models import Task, OneTime
+from .models import Task
 from .forms import TaskForm
 
 

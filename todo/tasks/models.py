@@ -25,6 +25,7 @@ class Task(models.Model):
         indexes = [
             models.Index(fields=["-created"]),
             models.Index(fields=["user", "completed"]),
+            models.Index(fields=["content_type", "object_id"]),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -58,3 +59,28 @@ class OneTime(models.Model):
 
     def __str__(self):
         return "Onetime task"
+
+
+class Recurring(models.Model):
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    duration_time = models.DurationField(blank=True)
+    interval = models.PositiveIntegerField(default=7)  # days
+    task = GenericRelation(Task, related_query_name="recurring")
+
+    def clean(self):
+        if self.start_time <= timezone.now() or self.end_time <= self.start_time:
+            raise ValidationError("Time error")
+
+    def save(self, *args, **kwargs):
+        self.duration_time = self.end_time - self.start_time
+        return super().save()
+
+
+class RecurringState(models.Model):
+    recurring = models.OneToOneField(
+        Recurring, on_delete=models.CASCADE, related_name="state"
+    )
+    active = models.BooleanField(default=False)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+    next_time = models.DateTimeField()
