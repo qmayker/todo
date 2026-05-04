@@ -129,8 +129,10 @@ INTERNAL_IPS = [
 
 # Templates
 
-TASK_TYPE_PATH = 'tasks/task_type/'
+TASK_TYPE_PATH = "tasks/task_type/"
 
-# Celery 
+# Celery
 
 CELERY_BROKER_URL = "redis://redis:6379/0"
+FLOWER_URL = "http://localhost:5555"
+FLOWER_URL_PREFIX = "flower"

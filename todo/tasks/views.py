@@ -27,7 +27,6 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qs: QuerySet[Task] = context["object_list"]
-        completed = qs.filter(completed=True)
         today_date = timezone.now().date()
         expired = qs.filter(onetime__expired=True)
         all_today = qs.filter(
@@ -39,7 +38,6 @@ class TaskListView(LoginRequiredMixin, ListView):
         context.update(
             {
                 "object_expired": expired,
-                "object_completed": completed,
                 "object_all": all_today,
                 "object_todo": todo_today,
             }
@@ -135,4 +133,4 @@ class TaskCreateView(LoginRequiredMixin, View):
             },
         )
 
-    # Todo - update task, filter tasks by days. reccurence tasks
+    # Todo - update task, filter tasks by days.

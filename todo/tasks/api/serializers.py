@@ -5,10 +5,10 @@ from tasks.models import Task, OneTime
 from .fields import TaskObjectField, TaskTypeField
 
 
-class TaskStatusSerializer(ModelSerializer):
-    class Meta:
-        model = Task
-        fields = ["completed"]
+# class TaskStatusSerializer(ModelSerializer):
+#     class Meta:
+#         model = Task
+#         fields = []
 
 
 class OneTimeSerializer(ModelSerializer):
@@ -30,7 +30,6 @@ class TaskSerializer(ModelSerializer):
             "description",
             "created",
             "updated",
-            "completed",
             "content_object",
             "content_type",
             "user",

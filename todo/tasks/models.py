@@ -13,7 +13,6 @@ class Task(models.Model):
     description = models.TextField(max_length=500, null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    completed = models.BooleanField(default=False)
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE, null=True, related_name="task"
     )
@@ -24,7 +23,7 @@ class Task(models.Model):
         ordering = ["-created"]
         indexes = [
             models.Index(fields=["-created"]),
-            models.Index(fields=["user", "completed"]),
+            models.Index(fields=["user"]),
             models.Index(fields=["content_type", "object_id"]),
         ]
         constraints = [
@@ -44,6 +43,7 @@ class Task(models.Model):
 class OneTime(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     expired = models.BooleanField(default=False)
+    completed = models.BooleanField(default=False)
     task = GenericRelation(Task, related_query_name="onetime")
 
     def save(self, *args, **kwargs):
@@ -64,23 +64,39 @@ class OneTime(models.Model):
 class Recurring(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    duration_time = models.DurationField(blank=True)
+    duration_time = models.DurationField(blank=True, editable=False)
     interval = models.PositiveIntegerField(default=7)  # days
     task = GenericRelation(Task, related_query_name="recurring")
 
     def clean(self):
-        if self.start_time <= timezone.now() or self.end_time <= self.start_time:
+        if self.end_time <= self.start_time:
             raise ValidationError("Time error")
-
-    def save(self, *args, **kwargs):
-        self.duration_time = self.end_time - self.start_time
-        return super().save()
 
 
 class RecurringState(models.Model):
     recurring = models.OneToOneField(
         Recurring, on_delete=models.CASCADE, related_name="state"
     )
-    active = models.BooleanField(default=False)
+    is_running = models.BooleanField(default=False)
+    completed = models.BooleanField(default=False)
     last_run_at = models.DateTimeField(null=True, blank=True)
-    next_time = models.DateTimeField()
+    next_time = models.DateTimeField(blank=True)
+    ends_at = models.DateTimeField(blank=True)
+
+
+class RecurringStateHistory(models.Model):
+    completed = models.BooleanField(default=False, editable=False)
+    state = models.ForeignKey(
+        RecurringState,
+        on_delete=models.CASCADE,
+        related_name="completes",
+        editable=False,
+    )
+    started_at = models.DateTimeField(editable=False)
+    ends_at = models.DateTimeField(editable=False)
+
+    def save(self, *args, **kwargs):
+        self.started_at = self.state.last_run_at
+        if not self.started_at:
+            raise ValueError("")
+        # todo - saving

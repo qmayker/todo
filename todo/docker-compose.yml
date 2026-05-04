@@ -16,6 +16,11 @@ services:
       POSTGRES_PASSWORD: 101210
   redis:
     image: redis
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    
   celery:
     build: .
     command: celery -A todo worker -l info
@@ -24,12 +29,17 @@ services:
     depends_on:
       - web
       - redis
-  beat:
+  flower:
     build: .
-    command: celery -A todo beat --loglevel=INFO
+    command: celery -A todo flower --port=5555 --adress=0.0.0.0
+    ports:
+      - "5555:5555"
     volumes:
       - .:/app
     depends_on:
       - web
       - redis
-    
+      - celery
+
+volumes:
+  redisdata:

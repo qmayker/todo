@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
+from .services.recurring import create_recurring_state
 from .models import Task, OneTime, Recurring, RecurringState
+from .admin_forms import RecurringAdminForm
 
 # Register your models here.
 
@@ -20,14 +22,23 @@ class OneTimeAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ["name", "user", "completed"]
+    list_display = ["name", "user"]
     search_fields = ["name"]
-    list_filter = ["user", "completed"]
+    list_filter = ["user"]
 
 
 class RecurringStateInline(admin.TabularInline):
     model = RecurringState
-    exclude = ["last_run_at"]
+    extra = 0
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Recurring)
@@ -35,8 +46,12 @@ class RecurringAdmin(admin.ModelAdmin):
     list_display = ["interval", "duration_time", "task_name"]
     list_filter = ["interval"]
     exclude = ["duration_time"]
-    inlines = [RecurringStateInline, TaskInline]
+    form = RecurringAdminForm
+    inlines = [TaskInline, RecurringStateInline]
 
     def task_name(self, obj: Recurring):
         task = obj.task.first()
         return task.name or "-"
+
+    def save_model(self, request, obj, form, change):
+        create_recurring_state(obj)

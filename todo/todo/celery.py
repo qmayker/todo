@@ -1,34 +1,41 @@
 import os
+from datetime import datetime
 from celery import Celery
-from datetime import timedelta
+from celery.utils.log import get_task_logger
+from django.db import transaction
 from django.utils import timezone
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "todo.settings")
 app = Celery("tasks")
+logger = get_task_logger(__name__)
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 
-@app.task(name="check_task_status")
-def check_task_status():
-    from tasks.models import Task, OneTime
+@app.task(name="check_task_status", bind=True)
+def check_task_status(self, id: int, ct: int, end: bool = False):
+    from django.contrib.contenttypes.models import ContentType
+    from tasks.models import OneTime, RecurringState
+    from tasks.services import recurring, redis
+    from .redis_client import r
 
-    try:
-        onetime_tasks = Task.objects.filter(
-            completed=False,
-            content_type__model="onetime",
-            onetime__expired=False,
-            onetime__expires_at__lte=timezone.now(),
-        )
-        onetime_objects = OneTime.objects.filter(
-            task__id__in=onetime_tasks.values_list("id", flat=True)
-        )
-        onetime_objects.update(expired=True)
-    except Task.DoesNotExist:
+    ct_model = ContentType.objects.get_for_id(ct)
+    model = ct_model.model_class()
+    lock = redis.get_recurring_lock(r, id, ct)
+    if not lock.acquire():
         return
 
+    with transaction.atomic():
+        try:
+            if model is OneTime:
+                ...
+            elif model is RecurringState and not end:
+                recurring.start_recurring(model, id, ct, logger)
+            elif model is RecurringState and end:
+                recurring.end_recurring(model, id, ct, logger)
+        except Exception as e:
+            logger.error(f"some error with {model} id {id}", exc_info=e)
+        finally:
+            lock.release()
 
-app.conf.beat_schedule = {
-    "test": {"task": "check_task_status", "schedule": timedelta(seconds=60)}
-}
