@@ -1,9 +1,9 @@
 import os
-from datetime import datetime
+import redis_lock
 from celery import Celery
 from celery.utils.log import get_task_logger
 from django.db import transaction
-from django.utils import timezone
+from tasks.services import redis_keys
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "todo.settings")
@@ -17,25 +17,20 @@ app.autodiscover_tasks()
 def check_task_status(self, id: int, ct: int, end: bool = False):
     from django.contrib.contenttypes.models import ContentType
     from tasks.models import OneTime, RecurringState
-    from tasks.services import recurring, redis
+    from tasks.services import recurring
     from .redis_client import r
 
     ct_model = ContentType.objects.get_for_id(ct)
     model = ct_model.model_class()
-    lock = redis.get_recurring_lock(r, id, ct)
-    if not lock.acquire():
-        return
-
-    with transaction.atomic():
-        try:
-            if model is OneTime:
-                ...
-            elif model is RecurringState and not end:
-                recurring.start_recurring(model, id, ct, logger)
-            elif model is RecurringState and end:
-                recurring.end_recurring(model, id, ct, logger)
-        except Exception as e:
-            logger.error(f"some error with {model} id {id}", exc_info=e)
-        finally:
-            lock.release()
-
+    keys = redis_keys.get_task_keys(id, ct)
+    with redis_lock.Lock(r, keys["lock_key"], expire=20, auto_renewal=True):
+        with transaction.atomic():
+            try:
+                if model is OneTime:
+                    ...
+                elif model is RecurringState and not end:
+                    recurring.start_recurring(model, id, ct, logger)
+                elif model is RecurringState and end:
+                    recurring.end_recurring(model, id, ct, logger)
+            except Exception as e:
+                logger.error(f"some error with {model} id {id}", exc_info=e)

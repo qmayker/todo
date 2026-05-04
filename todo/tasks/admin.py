@@ -51,7 +51,9 @@ class RecurringAdmin(admin.ModelAdmin):
 
     def task_name(self, obj: Recurring):
         task = obj.task.first()
+        if not task:
+            return "task not exists"
         return task.name or "-"
 
     def save_model(self, request, obj, form, change):
-        create_recurring_state(obj)
+        create_recurring_state(obj, form.changed_data)

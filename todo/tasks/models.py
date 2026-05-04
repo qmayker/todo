@@ -50,13 +50,7 @@ class OneTime(models.Model):
     def save(self, *args, **kwargs):
         if self.expires_at and timezone.is_naive(self.expires_at):
             self.expires_at = timezone.make_aware(self.expires_at)
-        super().save(*args, **kwargs)
-
-    def clean(self):
-        if not self.expires_at:
-            return
-        if self.expires_at <= timezone.now():
-            raise ValidationError("Time error")
+       
 
     def __str__(self):
         return "Onetime task"
@@ -76,7 +70,7 @@ class Recurring(models.Model):
 
 class RecurringState(models.Model):
     recurring = models.OneToOneField(
-        Recurring, on_delete=models.CASCADE, related_name="state"
+        Recurring, on_delete=models.CASCADE, related_query_name="state"
     )
     is_running = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
