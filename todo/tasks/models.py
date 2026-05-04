@@ -5,6 +5,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from datetime import timedelta
 
 
 class Task(models.Model):
@@ -65,7 +66,7 @@ class Recurring(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     duration_time = models.DurationField(blank=True, editable=False)
-    interval = models.PositiveIntegerField(default=7)  # days
+    interval = models.DurationField(default=timedelta(days=7))
     task = GenericRelation(Task, related_query_name="recurring")
 
     def clean(self):
