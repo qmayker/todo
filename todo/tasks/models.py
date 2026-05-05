@@ -50,7 +50,6 @@ class OneTime(models.Model):
     def save(self, *args, **kwargs):
         if self.expires_at and timezone.is_naive(self.expires_at):
             self.expires_at = timezone.make_aware(self.expires_at)
-       
 
     def __str__(self):
         return "Onetime task"
@@ -62,10 +61,6 @@ class Recurring(models.Model):
     duration_time = models.DurationField(blank=True, editable=False)
     interval = models.DurationField(default=timedelta(days=7))
     task = GenericRelation(Task, related_query_name="recurring")
-
-    def clean(self):
-        if self.end_time <= self.start_time:
-            raise ValidationError("Time error")
 
 
 class RecurringState(models.Model):
@@ -89,6 +84,9 @@ class RecurringStateHistory(models.Model):
     )
     started_at = models.DateTimeField(editable=False)
     ends_at = models.DateTimeField(editable=False)
+
+    class Meta:
+        ordering = ["-ends_at"]
 
     def save(self, *args, **kwargs):
         self.started_at = self.state.last_run_at
