@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def create_recurring_state(
     recurring: Recurring, changed_data: list[str], change: bool = True
 ):
-    
+
     logger.info(f"{changed_data}")
     if not changed_data and change:
         return
@@ -44,7 +44,6 @@ def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
     recurring_state.last_run_at = last_run
     recurring_state.ends_at = ends_at
     recurring_state.next_time = ends_at + recurring_state.recurring.interval
-
     recurring_state.save(
         update_fields=[
             "is_running",
@@ -53,12 +52,13 @@ def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
             "next_time",
         ]
     )
-    logger.debug(f"Model {model} id {id} started")
-    schedule_task(id, ct_id, ends_at)
+    logger.info(f"Model {model} id {id} started")
+    schedule_task(id, ct_id, ends_at, end=True)
+    logger.info(f"Model {model} id {id} end was scheduled")
 
 
 def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
-    logger.debug(f"model {model} id {id} ending")
+    logger.info(f"model {model} id {id} ending")
     recurring_state = RecurringState.objects.select_for_update().get(
         id=id, is_running=True
     )
@@ -70,8 +70,9 @@ def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
         started_at=recurring_state.last_run_at,
         ends_at=recurring_state.ends_at,
     )
-    logger.debug(f"model {model} id {id} ended")
+    logger.info(f"model {model} id {id} ended")
     schedule_task(id, ct_id, eta=recurring_state.next_time)
+    logger.info(f"Model {model} id {id} start was scheduled")
 
 
 def validate_time(cleaned_data: dict, changed_data: dict):

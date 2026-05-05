@@ -23,7 +23,7 @@ def check_task_status(self, id: int, ct: int, end: bool = False):
     ct_model = ContentType.objects.get_for_id(ct)
     model = ct_model.model_class()
     keys = redis_keys.get_task_keys(id, ct)
-    with redis_lock.Lock(r, keys["lock_key"], expire=20, auto_renewal=True):
+    with redis_lock.Lock(r, keys["lock_key"], expire=40, auto_renewal=True):
         with transaction.atomic():
             try:
                 if model is OneTime and not end:
@@ -36,3 +36,4 @@ def check_task_status(self, id: int, ct: int, end: bool = False):
                     recurring.end_recurring(model, id, ct, logger)
             except Exception as e:
                 logger.error(f"some error with {model} id {id}", exc_info=e)
+    logger.info(f"task for model {model} id {id} end {end} was finished")

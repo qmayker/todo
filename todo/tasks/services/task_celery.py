@@ -24,7 +24,7 @@ def schedule_first_task(obj, eta: datetime):
         set_task_id(r=r, id=id, ct=ct_id, eta=eta, keys=keys)
 
 
-def schedule_task(id: int, ct_id: int, eta: datetime):
-    keys = get_task_keys(id, ct_id)
-    with Lock(r, keys["lock_key"], expire=10):
-        set_task_id(r, id, ct_id, eta, keys=keys)
+def schedule_task(id: int, ct_id: int, eta: datetime, end: bool = False):
+    """should be under redis_lock"""
+    keys = get_task_keys(id, ct_id, end=end)
+    set_task_id(r, id, ct_id, eta, keys=keys, end=end)

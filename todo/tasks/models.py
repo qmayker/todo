@@ -3,7 +3,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.conf import settings
 from django.urls import reverse
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 
