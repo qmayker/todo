@@ -26,7 +26,9 @@ def check_task_status(self, id: int, ct: int, end: bool = False):
     with redis_lock.Lock(r, keys["lock_key"], expire=20, auto_renewal=True):
         with transaction.atomic():
             try:
-                if model is OneTime:
+                if model is OneTime and not end:
+                    ...
+                elif model is OneTime and end:
                     ...
                 elif model is RecurringState and not end:
                     recurring.start_recurring(model, id, ct, logger)

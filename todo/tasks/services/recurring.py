@@ -1,21 +1,24 @@
 import logging
-from redis_lock import Lock
 from django.db import transaction
-from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState, RecurringStateHistory
-from todo.celery import check_task_status, app
+from todo.celery import check_task_status
 from todo.redis_client import r
 from .redis_keys import get_task_keys
-from .redis_tasks import set_task_id
+from .task_celery import schedule_first_task, schedule_task
+
 
 logger = logging.getLogger(__name__)
 
 
 @transaction.atomic()
-def create_recurring_state(recurring: Recurring, changed_data: list[str]):
+def create_recurring_state(
+    recurring: Recurring, changed_data: list[str], change: bool = True
+):
+    
     logger.info(f"{changed_data}")
-    if not changed_data:
+    if not changed_data and change:
         return
     duration_time = recurring.end_time - recurring.start_time
     recurring.duration_time = duration_time
@@ -28,24 +31,11 @@ def create_recurring_state(recurring: Recurring, changed_data: list[str]):
         },
     )
     state = update_res[0]
-
-    def schedule_task():
-        id = state.id
-        ct = ContentType.objects.get_for_model(state).id
-        keys = get_task_keys(id, ct)
-        with Lock(r, keys["lock_key"], expire=10):
-            task_id = r.get(keys["key"])
-            logger.debug(f"{keys['key']} {task_id}")
-            if task_id:
-                logger.debug(f"Deleting task {task_id}")
-                app.control.revoke(task_id.decode())
-            set_task_id(r=r, id=id, ct=ct, eta=state.next_time, keys=keys)
-
-    transaction.on_commit(schedule_task)
+    schedule_first_task(state, state.next_time)
 
 
-def start_recurring(model: type[RecurringState], id: int, ct: int, logger):
-    logger.debug(f"Model {model} id {id} starting")
+def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
+    logger.info(f"Model {model} id {id} starting")
     recurring_state = model.objects.select_for_update().get(id=id, is_running=False)
     duration = recurring_state.recurring.duration_time
     last_run = timezone.now()
@@ -64,14 +54,10 @@ def start_recurring(model: type[RecurringState], id: int, ct: int, logger):
         ]
     )
     logger.debug(f"Model {model} id {id} started")
-    keys = get_task_keys(id, ct)
-    task = check_task_status.apply_async(
-        args=[id, ct, True], eta=recurring_state.ends_at
-    )
-    r.set(keys["key"], task.id)
+    schedule_task(id, ct_id, ends_at)
 
 
-def end_recurring(model: type[RecurringState], id: int, ct: int, logger):
+def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
     logger.debug(f"model {model} id {id} ending")
     recurring_state = RecurringState.objects.select_for_update().get(
         id=id, is_running=True
@@ -85,9 +71,19 @@ def end_recurring(model: type[RecurringState], id: int, ct: int, logger):
         ends_at=recurring_state.ends_at,
     )
     logger.debug(f"model {model} id {id} ended")
-    keys = get_task_keys(id, ct)
-    task = check_task_status.apply_async(args=[id, ct], eta=recurring_state.next_time)
-    r.set(keys["key"], task.id)
+    schedule_task(id, ct_id, eta=recurring_state.next_time)
 
 
-# todo - дозволити оновлювати таск, при цьому не перевіряючи час
+def validate_time(cleaned_data: dict, changed_data: dict):
+    if not changed_data:
+        return cleaned_data
+    start_time = cleaned_data.get("start_time")
+    end_time = cleaned_data.get("end_time")
+    if "end_time" and "start_time" not in changed_data:
+        return cleaned_data
+    if start_time and start_time < timezone.now():
+        raise ValidationError({"start_time": "Must be in future, not past"})
+    if end_time <= start_time:
+        raise ValidationError(
+            {"end_time": "End time cannot be earlier than start time"}
+        )

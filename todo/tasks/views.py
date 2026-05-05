@@ -3,13 +3,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.apps import apps
 from django.http import HttpResponseNotFound, HttpRequest
-from django.forms import modelform_factory, ModelForm, widgets
+from django.forms import ModelForm
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.db.models import QuerySet, Q
-from django.utils import timezone
-from .models import Task
-from .forms import TaskForm
+from django.db import transaction
+from .services.recurring import create_recurring_state
+from .models import Task, OneTime, Recurring
+from .forms import TaskForm, OneTimeForm, RecurringForm
 
 
 # Create your views here.
@@ -63,15 +64,16 @@ class TaskCreateView(LoginRequiredMixin, View):
     types = "onetime"
     template_name = "tasks/task/create.html"
     success_url = reverse_lazy("tasks:list")
+    models = ["onetime", "recurring"]
 
     def get_form(self, model) -> type[ModelForm]:
-        form = modelform_factory(
-            model,
-            exclude=["expired", "task"],
-            widgets={
-                "expires_at": widgets.DateTimeInput(attrs={"type": "datetime-local"})
-            },
-        )
+        if model is OneTime:
+            form = OneTimeForm
+        elif model is Recurring:
+            form = RecurringForm
+        else:
+            raise ValueError("form not found")
+
         return form
 
     def get_model(self, name: str):
@@ -83,13 +85,16 @@ class TaskCreateView(LoginRequiredMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         task_type = kwargs.get("task_type")
-        if not task_type:
+        if task_type not in self.models:
             return HttpResponseNotFound()
         model = self.get_model(task_type)
         if not model:
             return HttpResponseNotFound()
         self.model = model
-        self.form_class = self.get_form(model)
+        try:
+            self.form_class = self.get_form(model)
+        except Exception:
+            return HttpResponseNotFound()
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request: HttpRequest, task_type: str):
@@ -109,14 +114,19 @@ class TaskCreateView(LoginRequiredMixin, View):
         task_form = TaskForm(request.POST)
         type_form = self.form_class(request.POST)
         if task_form.is_valid() and type_form.is_valid():
-            type_obj = type_form.save(commit=False)
-            type_obj.save()
-            task = task_form.save(commit=False)
-            task.user = self.request.user
-            task.content_object = type_obj
-            task.save()
+            with transaction.atomic():
+                type_obj = type_form.save(commit=False)
+                if isinstance(type_obj, Recurring):
+                    create_recurring_state(type_obj, [], change=False)
+                elif isinstance(type_obj, OneTime):
+                    ...
+                type_obj.save()
+                task = task_form.save(commit=False)
+                task.user = self.request.user
+                task.content_object = type_obj
+                task.save()
 
-            messages.add_message(request, messages.SUCCESS, "Task has been created")
+                messages.add_message(request, messages.SUCCESS, "Task has been created")
             return redirect(self.success_url)
 
         return render(
@@ -128,5 +138,3 @@ class TaskCreateView(LoginRequiredMixin, View):
                 "model": self.model,
             },
         )
-
-    # Todo - update task, filter tasks by days.

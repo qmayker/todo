@@ -136,3 +136,5 @@ TASK_TYPE_PATH = "tasks/task_type/"
 CELERY_BROKER_URL = "redis://redis:6379/0"
 FLOWER_URL = "http://localhost:5555"
 FLOWER_URL_PREFIX = "flower"
+
+#add logging
