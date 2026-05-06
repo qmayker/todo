@@ -82,13 +82,16 @@ class RecurringStateHistory(models.Model):
         editable=False,
     )
     started_at = models.DateTimeField(editable=False)
-    ends_at = models.DateTimeField(editable=False)
+    ended_at = models.DateTimeField(editable=False)
 
     class Meta:
-        ordering = ["-ends_at"]
+        ordering = ["-ended_at"]
 
     def save(self, *args, **kwargs):
+        if not self.state:
+            raise ValueError("")
         self.started_at = self.state.last_run_at
         if not self.started_at:
             raise ValueError("")
+        return super().save(*args, **kwargs)
         # todo - saving
