@@ -3,9 +3,6 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState, RecurringStateHistory
-from todo.celery import check_task_status
-from todo.redis_client import r
-from .redis_keys import get_task_keys
 from .task_celery import schedule_first_task, schedule_task
 
 
@@ -31,9 +28,14 @@ def create_recurring_state(
         },
     )
     state = update_res[0]
-    schedule_first_task(state, state.next_time)
+
+    def schedule_task_on_commit():
+        schedule_first_task(state, state.next_time)
+
+    transaction.on_commit()
 
 
+@transaction.atomic
 def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
     logger.info(f"Model {model} id {id} starting")
     recurring_state = model.objects.select_for_update().get(id=id, is_running=False)
@@ -53,25 +55,36 @@ def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
         ]
     )
     logger.info(f"Model {model} id {id} started")
-    schedule_task(id, ct_id, ends_at, end=True)
+
+    def schedule_task_on_commit():
+        schedule_task(id, ct_id, eta=recurring_state.next_time, end=True)
+
+    transaction.on_commit(schedule_task_on_commit)
     logger.info(f"Model {model} id {id} end was scheduled")
 
 
+@transaction.atomic
 def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
     logger.info(f"model {model} id {id} ending")
     recurring_state = RecurringState.objects.select_for_update().get(
         id=id, is_running=True
     )
     recurring_state.is_running = False
+    recurring_state.completed = False
     recurring_state.save(update_fields=["is_running"])
     RecurringStateHistory.objects.create(
         state=recurring_state,
         completed=recurring_state.completed,
         started_at=recurring_state.last_run_at,
-        ends_at=recurring_state.ends_at,
+        ended_at=recurring_state.ends_at,
     )
     logger.info(f"model {model} id {id} ended")
-    schedule_task(id, ct_id, eta=recurring_state.next_time)
+
+    def schedule_task_on_commit():
+        schedule_task(id, ct_id, eta=recurring_state.next_time)
+
+    transaction.on_commit(schedule_task_on_commit)
+
     logger.info(f"Model {model} id {id} start was scheduled")
 
 

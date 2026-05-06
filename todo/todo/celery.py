@@ -2,7 +2,6 @@ import os
 import redis_lock
 from celery import Celery
 from celery.utils.log import get_task_logger
-from django.db import transaction
 from tasks.services import redis_keys
 
 
@@ -24,16 +23,18 @@ def check_task_status(self, id: int, ct: int, end: bool = False):
     model = ct_model.model_class()
     keys = redis_keys.get_task_keys(id, ct)
     with redis_lock.Lock(r, keys["lock_key"], expire=40, auto_renewal=True):
-        with transaction.atomic():
-            try:
-                if model is OneTime and not end:
-                    ...
-                elif model is OneTime and end:
-                    ...
-                elif model is RecurringState and not end:
-                    recurring.start_recurring(model, id, ct, logger)
-                elif model is RecurringState and end:
-                    recurring.end_recurring(model, id, ct, logger)
-            except Exception as e:
-                logger.error(f"some error with {model} id {id}", exc_info=e)
+        try:
+            if model is OneTime and not end:
+                ...
+            elif model is OneTime and end:
+                ...
+            elif model is RecurringState and not end:
+                recurring.start_recurring(model, id, ct, logger)
+            elif model is RecurringState and end:
+                recurring.end_recurring(model, id, ct, logger)
+        except Exception as e:
+            logger.error(f"some error with {model} id {id}", exc_info=e)
     logger.info(f"task for model {model} id {id} end {end} was finished")
+
+
+#saving tasks in db

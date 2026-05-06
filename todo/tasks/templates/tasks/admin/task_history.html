@@ -1,0 +1,7 @@
+<div class="history">
+    
+    {% for object in object_list %}
+        <a href="{{object.get_admin_url}}">{{object.pk}}</a>
+    {% endfor %}
+        
+</div>

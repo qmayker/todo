@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse_lazy
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.conf import settings
@@ -64,7 +65,7 @@ class Recurring(models.Model):
 
 class RecurringState(models.Model):
     recurring = models.OneToOneField(
-        Recurring, on_delete=models.CASCADE, related_query_name="state"
+        Recurring, on_delete=models.CASCADE, related_name="state"
     )
     is_running = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
@@ -74,15 +75,14 @@ class RecurringState(models.Model):
 
 
 class RecurringStateHistory(models.Model):
-    completed = models.BooleanField(default=False, editable=False)
+    completed = models.BooleanField(default=False)
     state = models.ForeignKey(
         RecurringState,
         on_delete=models.CASCADE,
-        related_name="completes",
-        editable=False,
+        related_name="history",
     )
-    started_at = models.DateTimeField(editable=False)
-    ended_at = models.DateTimeField(editable=False)
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField()
 
     class Meta:
         ordering = ["-ended_at"]
@@ -94,4 +94,8 @@ class RecurringStateHistory(models.Model):
         if not self.started_at:
             raise ValueError("")
         return super().save(*args, **kwargs)
-        # todo - saving
+
+    def get_admin_url(self):
+        return reverse_lazy(
+            f"admin:{self._meta.app_label}_{self._meta.model_name}_change", args=[self.pk]
+        )
