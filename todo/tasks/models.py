@@ -44,7 +44,7 @@ class Task(models.Model):
 class OneTime(models.Model):
     starts_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
-    active = models.BooleanField(default=False, blank=True)
+    started = models.BooleanField(default=False, blank=True)
     expired = models.BooleanField(default=False, blank=True)
     completed = models.BooleanField(default=False, blank=True)
     task = GenericRelation(Task, related_query_name="onetime")
