@@ -16,7 +16,7 @@ app.autodiscover_tasks()
 def check_task_status(self, id: int, ct: int, end: bool = False):
     from django.contrib.contenttypes.models import ContentType
     from tasks.models import OneTime, RecurringState
-    from tasks.services import recurring
+    from tasks.services import recurring, onetime
     from .redis_client import r
 
     ct_model = ContentType.objects.get_for_id(ct)
@@ -27,7 +27,7 @@ def check_task_status(self, id: int, ct: int, end: bool = False):
             if model is OneTime and not end:
                 ...
             elif model is OneTime and end:
-                ...
+                onetime.end_one_time()
             elif model is RecurringState and not end:
                 recurring.start_recurring(model, id, ct, logger)
             elif model is RecurringState and end:

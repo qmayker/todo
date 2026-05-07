@@ -32,7 +32,7 @@ def create_recurring_state(
     def schedule_task_on_commit():
         schedule_first_task(state, state.next_time)
 
-    transaction.on_commit()
+    transaction.on_commit(schedule_task_on_commit)
 
 
 @transaction.atomic

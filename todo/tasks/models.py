@@ -42,6 +42,7 @@ class Task(models.Model):
 
 
 class OneTime(models.Model):
+    starts_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     expired = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
@@ -50,6 +51,8 @@ class OneTime(models.Model):
     def save(self, *args, **kwargs):
         if self.expires_at and timezone.is_naive(self.expires_at):
             self.expires_at = timezone.make_aware(self.expires_at)
+        if self.expires_at and timezone.is_naive(self.starts_at):
+            self.starts_at = timezone.make_aware(self.starts_at)
 
     def __str__(self):
         return "Onetime task"
@@ -97,5 +100,6 @@ class RecurringStateHistory(models.Model):
 
     def get_admin_url(self):
         return reverse_lazy(
-            f"admin:{self._meta.app_label}_{self._meta.model_name}_change", args=[self.pk]
+            f"admin:{self._meta.app_label}_{self._meta.model_name}_change",
+            args=[self.pk],
         )

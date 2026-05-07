@@ -1,26 +1,11 @@
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.template.loader import render_to_string
-from django.utils.html import format_html
 from .services.recurring import create_recurring_state
 from .models import Task, OneTime, Recurring, RecurringState, RecurringStateHistory
 from .admin_forms import RecurringAdminForm
 
 # Register your models here.
-
-
-class RecurringStateHistoryInline(admin.TabularInline):
-    model = RecurringStateHistory
-    extra = 0
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
 
 
 class TaskInline(GenericTabularInline):
@@ -46,7 +31,6 @@ class TaskAdmin(admin.ModelAdmin):
 class RecurringStateInline(admin.TabularInline):
     model = RecurringState
     extra = 0
-    inlines = [RecurringStateHistoryInline]
 
     def has_change_permission(self, request, obj=None):
         return False

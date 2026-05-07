@@ -9,6 +9,7 @@ from django.urls import reverse_lazy
 from django.db.models import QuerySet, Q
 from django.db import transaction
 from .services.recurring import create_recurring_state
+from .services.onetime import start_one_time
 from .models import Task, OneTime, Recurring
 from .forms import TaskForm, OneTimeForm, RecurringForm
 
@@ -119,8 +120,8 @@ class TaskCreateView(LoginRequiredMixin, View):
                 if isinstance(type_obj, Recurring):
                     create_recurring_state(type_obj, [], change=False)
                 elif isinstance(type_obj, OneTime):
-                    ...
-                type_obj.save()
+                    type_obj.save()
+                    start_one_time(type_obj)
                 task = task_form.save(commit=False)
                 task.user = self.request.user
                 task.content_object = type_obj
