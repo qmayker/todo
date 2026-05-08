@@ -23,7 +23,8 @@ class RecurringForm(forms.ModelForm):
     def clean(self):
         cd = super().clean()
         changed_data = self.changed_data
-        return recurring.validate_time(cd, changed_data)
+        recurring.validate_time(cd, changed_data)
+        return cd
 
 
 class OneTimeForm(forms.ModelForm):
@@ -38,7 +39,8 @@ class OneTimeForm(forms.ModelForm):
     def clean(self):
         cd = super().clean()
         changed_data = self.changed_data
-        return one_time.validate_time(cd, changed_data)
+        one_time.validate_time(cd, changed_data)
+        return cd
 
     def clean_starts_at(self):
         changed_data = self.changed_data

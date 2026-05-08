@@ -62,7 +62,7 @@ class OneTime(models.Model):
 
 
 class Recurring(models.Model):
-    start_time = models.DateTimeField()
+    start_time = models.DateTimeField(blank=True)
     end_time = models.DateTimeField()
     duration_time = models.DurationField(blank=True, editable=False)
     interval = models.DurationField(default=timedelta(days=7))

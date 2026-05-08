@@ -8,19 +8,20 @@ logger = logging.getLogger(__name__)
 
 def validate_time(cd: dict, changed_data: list):
     if not changed_data:
-        return cd
+        return
     if "expires_at" not in changed_data and "starts_at" not in changed_data:
-        return cd
-    logger.info(f"{cd}")
+        return
     expires_at = cd.get("expires_at")
     starts_at = cd.get("starts_at")
+    if not expires_at or not starts_at:
+        return
     if starts_at >= expires_at:
         raise ValidationError(
             {
                 "expires_at": "Must be later than start_at. Can not be earlier or at the same time"
             }
         )
-    return cd
+    return
 
 
 def start_first_one_time(onetime: OneTime):

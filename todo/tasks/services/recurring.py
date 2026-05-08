@@ -90,11 +90,13 @@ def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
 
 def validate_time(cleaned_data: dict, changed_data: dict):
     if not changed_data:
-        return cleaned_data
+        return
     start_time = cleaned_data.get("start_time")
     end_time = cleaned_data.get("end_time")
     if "end_time" and "start_time" not in changed_data:
-        return cleaned_data
+        return
+    if not start_time:
+        return
     if end_time <= start_time:
         raise ValidationError(
             {"end_time": "End time cannot be earlier than start time"}
