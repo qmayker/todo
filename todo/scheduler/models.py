@@ -5,10 +5,18 @@ from django.db import models
 
 class Task(models.Model):
     """Celery tasks"""
+    class Status(models.TextChoices):
+        RECIEVED = "RC", "Recieved"
+        REVOKED = "RV", "Revoked"
+        COMPLETED = 'CM', 'Completed'
+        RUNNING = 'RN', 'Running',
+        ERROR = 'ERR', 'Error'
 
     celery_id = models.CharField(unique=True)
     task = models.ForeignKey('tasks.Task', related_name='celery', on_delete=models.CASCADE)
     start = models.DateTimeField()
+    ending = models.BooleanField(default=False)
+    status = models.CharField(choices=Status)
 
     class Meta:
 
