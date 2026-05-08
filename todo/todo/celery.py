@@ -35,6 +35,4 @@ def check_task_status(self, id: int, ct: int, end: bool = False):
         except Exception as e:
             logger.error(f"some error with {model} id {id}", exc_info=e)
     logger.info(f"task for model {model} id {id} end {end} was finished")
-
-
-#saving tasks in db
+    # TODO change Task status

@@ -7,7 +7,7 @@ class Task(models.Model):
     """Celery tasks"""
     class Status(models.TextChoices):
         RECIEVED = "RC", "Recieved"
-        REVOKED = "RV", "Revoked"
+        PROCESSING = "PR", "Processing"
         COMPLETED = 'CM', 'Completed'
         RUNNING = 'RN', 'Running',
         ERROR = 'ERR', 'Error'
