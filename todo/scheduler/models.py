@@ -9,7 +9,6 @@ class Task(models.Model):
     celery_id = models.CharField(unique=True)
     task = models.ForeignKey('tasks.Task', related_name='celery', on_delete=models.CASCADE)
     start = models.DateTimeField()
-    duration = models.DurationField()
 
     class Meta:
 
