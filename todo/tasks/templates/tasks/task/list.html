@@ -11,18 +11,6 @@
         <p><a href="{{task.get_absolute_url}}">{{task}}</a></p>
       {% endfor %}
     </div>
-    <div class="today todo">
-      <h1>Today todo</h1>
-      {% for task in object_todo %}
-        <p><a href="{{task.get_absolute_url}}">{{task}}</a></p>
-      {% endfor %}
-    </div>
-    <div class="alltime expired">
-      <h1>All time expired</h1>
-      {% for task in object_expired %}
-        <p><a href="{{task.get_absolute_url}}">{{task}}</a></p>
-      {% endfor %}
-    </div>
         
 {% endblock content %}
     
