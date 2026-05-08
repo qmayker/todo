@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import socket
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -122,9 +123,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+INTERNAL_IPS = ["127.0.0.1", "localhost", "0.0.0.0"] + ips
 
 
 # Templates
@@ -137,4 +137,25 @@ CELERY_BROKER_URL = "redis://redis:6379/0"
 FLOWER_URL = "http://localhost:5555"
 FLOWER_URL_PREFIX = "flower"
 
-#add logging
+# Logger
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "[{levelname}] {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}

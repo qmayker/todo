@@ -14,7 +14,7 @@ def create_recurring_state(
     recurring: Recurring, changed_data: list[str], change: bool = True
 ):
 
-    logger.info(f"{changed_data}")
+    logger.debug(f"{changed_data}")
     if not changed_data and change:
         return
     duration_time = recurring.end_time - recurring.start_time
@@ -37,7 +37,7 @@ def create_recurring_state(
 
 @transaction.atomic
 def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
-    logger.info(f"Model {model} id {id} starting")
+    logger.debug(f"Model {model} id {id} starting")
     recurring_state = model.objects.select_for_update().get(id=id, is_running=False)
     duration = recurring_state.recurring.duration_time
     last_run = timezone.now()
@@ -54,18 +54,18 @@ def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
             "next_time",
         ]
     )
-    logger.info(f"Model {model} id {id} started")
+    logger.debug(f"Model {model} id {id} started")
 
     def schedule_task_on_commit():
         schedule_task(id, ct_id, eta=recurring_state.next_time, end=True)
 
     transaction.on_commit(schedule_task_on_commit)
-    logger.info(f"Model {model} id {id} end was scheduled")
+    logger.debug(f"Model {model} id {id} end was scheduled")
 
 
 @transaction.atomic
 def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
-    logger.info(f"model {model} id {id} ending")
+    logger.debug(f"model {model} id {id} ending")
     recurring_state = RecurringState.objects.select_for_update().get(
         id=id, is_running=True
     )
@@ -78,14 +78,14 @@ def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
         started_at=recurring_state.last_run_at,
         ended_at=recurring_state.ends_at,
     )
-    logger.info(f"model {model} id {id} ended")
+    logger.debug(f"model {model} id {id} ended")
 
     def schedule_task_on_commit():
         schedule_task(id, ct_id, eta=recurring_state.next_time)
 
     transaction.on_commit(schedule_task_on_commit)
 
-    logger.info(f"Model {model} id {id} start was scheduled")
+    logger.debug(f"Model {model} id {id} start was scheduled")
 
 
 def validate_time(cleaned_data: dict, changed_data: dict):
@@ -95,8 +95,6 @@ def validate_time(cleaned_data: dict, changed_data: dict):
     end_time = cleaned_data.get("end_time")
     if "end_time" and "start_time" not in changed_data:
         return cleaned_data
-    if start_time and start_time < timezone.now():
-        raise ValidationError({"start_time": "Must be in future, not past"})
     if end_time <= start_time:
         raise ValidationError(
             {"end_time": "End time cannot be earlier than start time"}

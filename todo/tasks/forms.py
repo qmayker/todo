@@ -1,6 +1,6 @@
 from django import forms
 from .models import Task, OneTime, Recurring
-from .services import recurring, onetime
+from .services import one_time, recurring
 
 
 class TaskForm(forms.ModelForm):
@@ -35,4 +35,4 @@ class OneTimeForm(forms.ModelForm):
     def clean(self):
         cd = super().clean()
         changed_data = self.changed_data
-        return onetime.validate_time(cd, changed_data)
+        return one_time.validate_time(cd, changed_data)

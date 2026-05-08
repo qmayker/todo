@@ -11,9 +11,9 @@ from .models import Task
 def task_delete_hander(instance: Task, *args, **kwargs):
     obj = instance.content_object
     if obj:
+        keys = get_delete_by_object(obj)
+        with Lock(r, keys["lock_key"], expire=10):
+            delete_task(keys)
         instance.content_object.delete()
-    keys = get_delete_by_object()
-    with Lock(r, keys["lock_key"], expire=10):
-        delete_task(keys)
 
-    #remake with manually deleting
+    # remake with manually deleting

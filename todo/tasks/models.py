@@ -54,6 +54,8 @@ class OneTime(models.Model):
             self.expires_at = timezone.make_aware(self.expires_at)
         if self.starts_at and timezone.is_naive(self.starts_at):
             self.starts_at = timezone.make_aware(self.starts_at)
+        
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return "Onetime task"

@@ -9,7 +9,6 @@ def get_task_keys(id: int, ct_id: int, end: bool = False, delete: bool = False) 
 
 def get_delete_by_object(object):
     from django.contrib.contenttypes.models import ContentType
-
     ct = ContentType.objects.get_for_model(object)
     ct_id = ct.id
     id = object.id

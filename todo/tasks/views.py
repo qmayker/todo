@@ -9,7 +9,7 @@ from django.urls import reverse_lazy
 from django.db.models import QuerySet, Q
 from django.db import transaction
 from .services.recurring import create_recurring_state
-from .services.onetime import start_one_time
+from .services.one_time import start_one_time
 from .models import Task, OneTime, Recurring
 from .forms import TaskForm, OneTimeForm, RecurringForm
 
@@ -31,7 +31,7 @@ class TaskListView(LoginRequiredMixin, ListView):
         qs: QuerySet[Task] = context["object_list"]
         all_tasks = qs.filter(
             Q(
-                onetime__expired=False,
+                onetime__started=True
             )
             | Q(recurring__state__is_running=True)
         )
