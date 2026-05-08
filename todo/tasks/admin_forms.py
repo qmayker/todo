@@ -14,18 +14,6 @@ class RecurringAdminForm(ModelForm):
         recurring.validate_time(cd, changed_data)
         return cd
 
-    def clean_start_time(self):
-        start_time = self.cleaned_data.get("start_time")
-        if not start_time:
-            return 
-        if start_time < timezone.now():
-            raise ValidationError("Must be in future, not past")
-
-    def clean_end_time(self):
-        end_time = self.cleaned_data.get("end_time")
-        if end_time <= timezone.now():
-            raise ValidationError("Must be in future, not past")
-
 
 class OneTimeForm(ModelForm):
     def clean(self):

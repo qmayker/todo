@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState, RecurringStateHistory
 from .task_celery import schedule_first_task, schedule_task
+from .validation import time_validation
 
 
 logger = logging.getLogger(__name__)
@@ -89,15 +90,19 @@ def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
 
 
 def validate_time(cleaned_data: dict, changed_data: dict):
-    if not changed_data:
-        return
     start_time = cleaned_data.get("start_time")
     end_time = cleaned_data.get("end_time")
     if "end_time" and "start_time" not in changed_data:
         return
-    if not start_time:
-        return
-    if end_time <= start_time:
-        raise ValidationError(
-            {"end_time": "End time cannot be earlier than start time"}
-        )
+    time_validation(start_time, end_time, changed_data)
+
+
+def validate_end_time(cleaned_data: dict):
+    end_time = cleaned_data.get("end_time")
+    if end_time <= timezone.now():
+        raise ValidationError({"end_time": "Must be in future, not past"})
+
+
+def validate(cleaned_data: dict, changed_data: dict):
+    validate_time(cleaned_data, changed_data)
+    validate_end_time()
