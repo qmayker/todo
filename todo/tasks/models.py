@@ -68,6 +68,9 @@ class Recurring(models.Model):
     interval = models.DurationField(default=timedelta(days=7))
     task = GenericRelation(Task, related_query_name="recurring")
 
+    def __str__(self):
+        return "Recurring task"
+
 
 class RecurringState(models.Model):
     recurring = models.OneToOneField(
