@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -14,18 +15,14 @@ logger = logging.getLogger(__name__)
 def create_recurring_state(
     recurring: Recurring, changed_data: list[str], change: bool = True
 ):
-
     logger.debug(f"{changed_data}")
     if not changed_data and change:
         return
-    duration_time = recurring.end_time - recurring.start_time
-    recurring.duration_time = duration_time
-    recurring.save()
     update_res = RecurringState.objects.update_or_create(
         recurring=recurring,
         defaults={
             "next_time": recurring.start_time,
-            "ends_at": recurring.start_time + duration_time,
+            "ends_at": recurring.start_time + recurring.duration_time,
         },
     )
     state = update_res[0]
@@ -36,7 +33,7 @@ def create_recurring_state(
     transaction.on_commit(schedule_task_on_commit)
 
 
-@transaction.atomic
+@transaction.atomic # TODO delete model as args
 def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
     logger.debug(f"Model {model} id {id} starting")
     recurring_state = model.objects.select_for_update().get(id=id, is_running=False)
@@ -106,3 +103,9 @@ def validate_end_time(cleaned_data: dict):
 def validate(cleaned_data: dict, changed_data: dict):
     validate_time(cleaned_data, changed_data)
     validate_end_time()
+
+def save_duration_time(recurring:Recurring)->timedelta:
+    duration_time = recurring.end_time - recurring.start_time
+    recurring.duration_time = duration_time
+    recurring.save()
+    return duration_time

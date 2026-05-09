@@ -4,7 +4,7 @@ from django.contrib.contenttypes.admin import GenericTabularInline
 from django.template.loader import render_to_string
 from django.db import transaction
 from django.utils import timezone
-from .services.recurring import create_recurring_state
+from .services.recurring import create_recurring_state, save_duration_time
 from .services.one_time import start_first_one_time
 from .models import Task, OneTime, Recurring, RecurringState, RecurringStateHistory
 from .admin_forms import RecurringAdminForm, OneTimeForm
@@ -91,8 +91,9 @@ class RecurringAdmin(admin.ModelAdmin):
         return html
 
     def save_model(self, request, obj, form, change):
-        if not obj.starts_at:
-            obj.starts_at = timezone.now()
+        if not obj.start_time:
+            obj.start_time = timezone.now()
+        save_duration_time(obj)
         create_recurring_state(obj, form.changed_data)
 
 
