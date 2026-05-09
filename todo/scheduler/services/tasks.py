@@ -1,7 +1,6 @@
 import logging
 from django.utils import timezone
 from django.db import transaction
-from datetime import timedelta
 from celery import shared_task
 from todo.celery import check_task_status
 from scheduler.models import CeleryTask
