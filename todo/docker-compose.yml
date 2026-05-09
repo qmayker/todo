@@ -40,6 +40,15 @@ services:
       - web
       - redis
       - celery
+  beat:
+    build: .
+    command: celery -A todo beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+      - redis
+      - celery
 
 volumes:
   redisdata:

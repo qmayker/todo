@@ -11,12 +11,15 @@ logger = logging.getLogger(__name__)
 def set_task_id(
     r: Redis, id: int, ct: int, eta, keys: dict | None = None, end: bool = False
 ) -> None:
+    """Should be under Lock"""
     if not keys:
         keys = get_task_keys(id, ct)
     celery_task = check_task_status.apply_async(args=[id, ct, end], eta=eta)
     task_id = celery_task.id
-    logger.info(f"{id} {ct}")
     task = Task.objects.get(content_type__id=ct, object_id=id)
-    CeleryTask.objects.create(celery_id=task_id, start=eta, task=task)
+    CeleryTask.objects.create(
+        celery_id=task_id, start=eta, task=task, status=CeleryTask.Status.RECIEVED, ending=end
+    )
     logger.info(f"task {task_id} was scheduled and saved to db")
+
     r.set(keys["key"], f"{task_id}")

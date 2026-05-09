@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def start_first_one_time(onetime: OneTime):
-    logger.info(f"{onetime.started}")
     if onetime.starts_at:
         eta = onetime.starts_at
     else:
@@ -22,7 +21,6 @@ def start_one_time(id: int, ct_id: int):
     qs = OneTime.objects.filter(id=id, started=False)
     onetime = qs.first()
     qs.update(started=True)
-    logger.info(f"{OneTime.objects.filter(id=id)}")
     if not onetime:
         return
     if onetime.expires_at:
