@@ -42,7 +42,7 @@ class Task(models.Model):
 
 
 class OneTime(models.Model):
-    starts_at = models.DateTimeField(null=True, blank=True)
+    starts_at = models.DateTimeField(blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     started = models.BooleanField(default=False, blank=True)
     expired = models.BooleanField(default=False, blank=True)
@@ -50,10 +50,13 @@ class OneTime(models.Model):
     task = GenericRelation(Task, related_query_name="onetime")
 
     def save(self, *args, **kwargs):
+        if not self.starts_at:
+            self.starts_at = timezone.now()
         if self.expires_at and timezone.is_naive(self.expires_at):
             self.expires_at = timezone.make_aware(self.expires_at)
         if self.starts_at and timezone.is_naive(self.starts_at):
             self.starts_at = timezone.make_aware(self.starts_at)
+
         
         super().save(*args, **kwargs)
 
