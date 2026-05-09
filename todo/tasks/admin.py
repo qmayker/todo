@@ -91,8 +91,6 @@ class RecurringAdmin(admin.ModelAdmin):
         return html
 
     def save_model(self, request, obj, form, change):
-        if not obj.start_time:
-            obj.start_time = timezone.now()
         save_duration_time(obj)
         create_recurring_state(obj, form.changed_data)
 

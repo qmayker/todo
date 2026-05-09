@@ -73,6 +73,10 @@ class Recurring(models.Model):
 
     def __str__(self):
         return "Recurring task"
+    
+    def save(self, *args, **kwargs):
+        if not self.start_time:
+            self.start_time = timezone.now()
 
 
 class RecurringState(models.Model):
