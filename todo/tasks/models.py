@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse_lazy
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -64,6 +64,15 @@ class OneTime(models.Model):
 
     def __str__(self):
         return "Onetime task"
+    
+    def mark_completed(self, completed:bool):
+        qs = OneTime.objects.filter(pk=self.pk)
+        qs.update(completed=completed)
+
+    @property
+    def is_completed(self):
+        return self.completed
+        
 
 
 class Recurring(models.Model):
@@ -79,6 +88,14 @@ class Recurring(models.Model):
     def save(self, *args, **kwargs):
         if not self.start_time:
             self.start_time = timezone.now()
+
+    def mark_completed(self, completed:bool):
+        qs = RecurringState.objects.filter(pk=self.state.pk)
+        qs.update(completed=completed)
+
+    @property
+    def is_completed(self):
+        return self.state.completed
 
 
 class RecurringState(models.Model):

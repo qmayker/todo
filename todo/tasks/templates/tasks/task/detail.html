@@ -16,7 +16,7 @@
         {% include type_name|get_path with object=object_type %}
     </div>
     <div class="checkbox">
-        {% if object.completed %}
+        {% if object_type.is_completed%}
             <p data-markText="Позначити завдання виконаним">Позначити завдання невиконаним </p>
             <input type="checkbox" checked>
         {% else %}

@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
+from tasks.models import Task
 
 
 class TaskObjectField(serializers.DictField):

@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', e=>{
                 return response.json()
             }
         ).then((data)=>{
+            console.log(data)
             let textObject = document.querySelector('.checkbox p');
             let previousText = textObject.textContent;
             let newText = textObject.dataset.marktext;

@@ -1,16 +1,38 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}
     Your tasks
 {% endblock title %}
     
 {% block content %}
-    <div class="today all">
-      <h1>Today all</h1>
-      {% for task in object_all %}
-        <p><a href="{{task.get_absolute_url}}">{{task}}</a></p>
-      {% endfor %}
+    <div id="tasks">
+
+      <div class="active">
+        <div>
+          <a href="#" >
+            <h1 class="type" data-type="active" data-state="hidden">Active</h1>
+          </a>
+        </div>
+        <div class="tasks"></div>
+      </div>
+
+      <div class="expired">
+        <div>
+          <a href="#" >
+            <h1 class="type" data-type="expired" data-state="hidden">Expired</h1>
+          </a>
+        </div>
+        <div class="tasks"></div>
+      </div>
+
     </div>
         
 {% endblock content %}
-    
+
+
+{% block js %}
+  <script src="{% static 'tasks/js/get_tasks1.js' %}"></script>
+{% endblock js %}
+  
+  
