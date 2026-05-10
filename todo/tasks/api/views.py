@@ -1,6 +1,5 @@
 from rest_framework import permissions, viewsets, response
 from rest_framework.decorators import action
-from django.http import HttpRequest
 from tasks.models import Task
 from tasks.services.api import TaskList
 from .serializers import TaskSerializer, TaskListSerializer, TaskStatusSerializer
