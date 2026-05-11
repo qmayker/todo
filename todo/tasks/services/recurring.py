@@ -33,7 +33,7 @@ def create_recurring_state(
     transaction.on_commit(schedule_task_on_commit)
 
 
-@transaction.atomic  # TODO delete model as args
+@transaction.atomic
 def start_recurring(id: int, ct_id: int, task_id: int, logger):
     recurring_state = RecurringState.objects.select_for_update().get(
         id=id, is_running=False
@@ -56,7 +56,7 @@ def start_recurring(id: int, ct_id: int, task_id: int, logger):
 
     def schedule_task_on_commit():
         schedule_task(
-            id, ct_id, task_id=task_id, eta=recurring_state.next_time, end=True
+            id, ct_id, task_id=task_id, eta=recurring_state.ends_at, end=True
         )
 
     transaction.on_commit(schedule_task_on_commit)
@@ -70,7 +70,7 @@ def end_recurring(id: int, ct_id: int, task_id: int, logger):
     logger.info("Changing is_running field")
     recurring_state.is_running = False
     recurring_state.completed = False
-    recurring_state.save(update_fields=["is_running", "completed"])
+    recurring_state.save()
     logger.info("Saved")
     RecurringStateHistory.objects.create(
         state=recurring_state,

@@ -39,7 +39,7 @@ def check_task_status(
     keys = redis_keys.get_task_keys(id, ct, end=end)
 
     with redis_lock.Lock(r, keys["lock_key"], expire=40, auto_renewal=True):
-        logger.info(f"task {celery_id} started")
+        logger.info(f"task for {model} {id} started")
         updated = CeleryTask.objects.start_running(celery_id=celery_id, status=status)
         if updated == 0:
             return
@@ -66,9 +66,9 @@ def check_task_status(
     logger.info(f"task for model {model} id {id} end {end} was finished")
 
 
-app.conf.beat_schedule = {
-    "check_tasks": {
-        "task": "scheduler.services.tasks.check_tasks",
-        "schedule": timedelta(seconds=30),
-    }
-}
+# app.conf.beat_schedule = {
+#     "check_tasks": {
+#         "task": "scheduler.services.tasks.check_tasks",
+#         "schedule": timedelta(seconds=30),
+#     }
+# }
