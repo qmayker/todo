@@ -27,6 +27,7 @@ def check_tasks():
             args=[
                 task.task.object_id,
                 task.task.content_type.id,
+                task.task.id,
                 task.ending,
                 task.celery_id,
             ]

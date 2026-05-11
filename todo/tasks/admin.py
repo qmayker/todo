@@ -3,8 +3,7 @@ from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.template.loader import render_to_string
 from django.db import transaction
-from django.utils import timezone
-from .services.recurring import create_recurring_state, save_duration_time
+from .services.recurring import create_recurring_state
 from .services.one_time import start_first_one_time
 from .models import Task, OneTime, Recurring, RecurringState, RecurringStateHistory
 from .admin_forms import RecurringAdminForm, OneTimeForm
@@ -45,14 +44,14 @@ class RecurringStateInline(admin.TabularInline):
     model = RecurringState
     extra = 0
 
-    def has_change_permission(self, request, obj=None):
-        return False
+    # def has_change_permission(self, request, obj=None):
+    #     return False
 
-    def has_add_permission(self, request, obj=None):
-        return False
+    # def has_add_permission(self, request, obj=None):
+    #     return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
 
 
 @admin.register(Recurring)
@@ -91,7 +90,7 @@ class RecurringAdmin(admin.ModelAdmin):
         return html
 
     def save_model(self, request, obj, form, change):
-        save_duration_time(obj)
+        obj.save()
         create_recurring_state(obj, form.changed_data)
 
 

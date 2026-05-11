@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.db.models import QuerySet, Q
 from django.db import transaction
-from .services.recurring import create_recurring_state, save_duration_time
+from .services.recurring import create_recurring_state
 from .services.one_time import start_first_one_time
 from .models import Task, OneTime, Recurring
 from .forms import TaskForm, OneTimeForm, RecurringForm
@@ -115,7 +115,7 @@ class TaskCreateView(LoginRequiredMixin, View):
             with transaction.atomic():
                 type_obj = type_form.save(commit=False)
                 if isinstance(type_obj, Recurring):
-                    save_duration_time(type_obj)
+                    type_obj.save()
                 elif isinstance(type_obj, OneTime):
                     type_obj.save()
                 task = task_form.save(commit=False)

@@ -28,15 +28,16 @@ def create_recurring_state(
     state = update_res[0]
 
     def schedule_task_on_commit():
-        schedule_first_task(state, state.next_time)
+        schedule_first_task(state, state.next_time, recurring.task.get().id)
 
     transaction.on_commit(schedule_task_on_commit)
 
 
 @transaction.atomic  # TODO delete model as args
-def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
-    logger.debug(f"Model {model} id {id} starting")
-    recurring_state = model.objects.select_for_update().get(id=id, is_running=False)
+def start_recurring(id: int, ct_id: int, task_id: int, logger):
+    recurring_state = RecurringState.objects.select_for_update().get(
+        id=id, is_running=False
+    )
     duration = recurring_state.recurring.duration_time
     last_run = timezone.now()
     ends_at = duration + last_run
@@ -52,38 +53,36 @@ def start_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
             "next_time",
         ]
     )
-    logger.debug(f"Model {model} id {id} started")
 
     def schedule_task_on_commit():
-        schedule_task(id, ct_id, eta=recurring_state.next_time, end=True)
+        schedule_task(
+            id, ct_id, task_id=task_id, eta=recurring_state.next_time, end=True
+        )
 
     transaction.on_commit(schedule_task_on_commit)
-    logger.debug(f"Model {model} id {id} end was scheduled")
 
 
 @transaction.atomic
-def end_recurring(model: type[RecurringState], id: int, ct_id: int, logger):
-    logger.debug(f"model {model} id {id} ending")
+def end_recurring(id: int, ct_id: int, task_id: int, logger):
     recurring_state = RecurringState.objects.select_for_update().get(
         id=id, is_running=True
     )
+    logger.info("Changing is_running field")
     recurring_state.is_running = False
     recurring_state.completed = False
-    recurring_state.save(update_fields=["is_running"])
+    recurring_state.save(update_fields=["is_running", "completed"])
+    logger.info("Saved")
     RecurringStateHistory.objects.create(
         state=recurring_state,
         completed=recurring_state.completed,
         started_at=recurring_state.last_run_at,
         ended_at=recurring_state.ends_at,
     )
-    logger.debug(f"model {model} id {id} ended")
 
     def schedule_task_on_commit():
-        schedule_task(id, ct_id, eta=recurring_state.next_time)
+        schedule_task(id, ct_id, task_id=task_id, eta=recurring_state.next_time)
 
     transaction.on_commit(schedule_task_on_commit)
-
-    logger.debug(f"Model {model} id {id} start was scheduled")
 
 
 def validate_time(cleaned_data: dict, changed_data: dict):
@@ -103,10 +102,3 @@ def validate_end_time(cleaned_data: dict):
 def validate(cleaned_data: dict, changed_data: dict):
     validate_time(cleaned_data, changed_data)
     validate_end_time()
-
-
-def save_duration_time(recurring: Recurring) -> timedelta:
-    duration_time = recurring.end_time - recurring.start_time
-    recurring.duration_time = duration_time
-    recurring.save()
-    return duration_time

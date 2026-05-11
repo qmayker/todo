@@ -11,19 +11,19 @@ from .redis_keys import get_task_keys
 logger = logging.getLogger(__name__)
 
 
-def schedule_first_task(obj, eta: datetime):
+def schedule_first_task(obj, eta: datetime, task_id):
     id = obj.id
     ct_id = ContentType.objects.get_for_model(obj).id
     keys = get_task_keys(id, ct_id)
     with Lock(r, keys["lock_key"], expire=10):
         delete_task(keys)
-        set_task_id(r=r, id=id, ct=ct_id, eta=eta, keys=keys)
+        set_task_id(r=r, id=id, ct=ct_id, task_id=task_id, eta=eta, keys=keys)
 
 
-def schedule_task(id: int, ct_id: int, eta: datetime, end: bool = False):
+def schedule_task(id: int, ct_id: int, task_id: int, eta: datetime, end: bool = False):
     """should be under redis_lock"""
     keys = get_task_keys(id, ct_id, end=end)
-    set_task_id(r, id, ct_id, eta, keys=keys, end=end)
+    set_task_id(r, id, ct_id, eta, task_id=task_id, keys=keys, end=end)
 
 
 def delete_task(keys: dict, terminate: bool = False):

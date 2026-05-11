@@ -14,17 +14,17 @@ def start_first_one_time(onetime: OneTime):
     else:
         eta = None
 
-    schedule_first_task(onetime, eta)
+    schedule_first_task(onetime, eta, onetime.task.get().id)
 
 
-def start_one_time(id: int, ct_id: int):
+def start_one_time(id: int, ct_id: int, task_id:int):
     qs = OneTime.objects.filter(id=id, started=False)
     onetime = qs.first()
     qs.update(started=True)
     if not onetime:
         return
     if onetime.expires_at:
-        schedule_task(id, ct_id, onetime.expires_at, end=True)
+        schedule_task(id=id, ct_id=ct_id, eta=onetime.expires_at, task_id=task_id, end=True)
 
 
 def end_one_time(id: int):
