@@ -88,6 +88,9 @@ class Recurring(models.Model):
     def save(self, *args, **kwargs):
         if not self.start_time:
             self.start_time = timezone.now()
+        if self.end_time:
+            self.duration_time = self.end_time - self.start_time
+        return super().save(*args, **kwargs)
 
     def mark_completed(self, completed:bool):
         qs = RecurringState.objects.filter(pk=self.state.pk)
