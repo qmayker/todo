@@ -1,20 +1,12 @@
 from django.db import models
+from .task_statuses import Status
+from .querysets import CeleryTaskQueryset
 
 # Create your models here.
 
 
 class CeleryTask(models.Model):
     """Celery tasks"""
-
-    class Status(models.TextChoices):
-        RECIEVED = "RC", "Recieved"  # sent to celery
-        PROCESSING = "PR", "Processing"  # check_tasks is working with this task
-        RUNNING = "RN", "Running"  # check_task_status started
-        COMPLETED = (
-            "CN",
-            "Completed",  # check_task_status completed
-        )
-        ERROR = "ERR", "Error"  # check_task_status caused an error
 
     celery_id = models.CharField(unique=True)
     task = models.ForeignKey(
@@ -23,6 +15,7 @@ class CeleryTask(models.Model):
     start = models.DateTimeField()
     ending = models.BooleanField(default=False)  # if this starting or ending Task
     status = models.CharField(choices=Status)
+    objects = CeleryTaskQueryset.as_manager()
 
     class Meta:
         verbose_name = "Task"
