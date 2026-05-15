@@ -2,66 +2,83 @@ import logging
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from tasks.models import OneTime
-from .task_celery import schedule_first_task, schedule_task
-from .validation import time_validation
+from todo.celery import check_tasks_status
+from .celery import CeleryService
+from .validation import TimeValidation
+from .types import TaskSchedule
 
 logger = logging.getLogger(__name__)
 
 
-def start_first_one_time(onetime: OneTime):
-    if onetime.starts_at:
-        eta = onetime.starts_at
-    else:
-        eta = None
+class OneTimeServices(CeleryService):
+    CONTENT_TYPE_ID = None
 
-    schedule_first_task(onetime, eta, onetime.task.get().id)
+    def __init__(self, obj: OneTime, logger: logging.Logger):
+        super().__init__(obj, logger)
+        self.obj: OneTime
+        self.start_name = OneTimeValidation.FIELDS.get("start")
+        self.completed_name = OneTimeValidation.FIELDS.get("complete")
+
+    def save(self, cd: dict, changed_data: list) -> TaskSchedule:
+        if set(changed_data) == {self.completed_name}:
+            self.obj.save()
+            return TaskSchedule(eta=None, schedule=False)
+        self.obj.starts_at = cd.get(self.start_name)
+        self.obj.started = False
+        self.obj.expired = False
+        self.obj.completed = False
+        self.obj.save()
+        return TaskSchedule(eta=self.obj.starts_at, schedule=True)
+
+    def start(self):
+        self.obj.started = True
+        self.obj.save(update_fields=["started"])
+        return TaskSchedule(eta=self.obj.expires_at, schedule=True)
+
+    def end(self):
+        self.obj.expired = True
+        self.obj.save(update_fields=["expired"])
+        return TaskSchedule(eta=None, schedule=False)
+
+    @staticmethod
+    def get_model() -> OneTime:
+        return OneTime
 
 
-def start_one_time(id: int, ct_id: int, task_id:int):
-    qs = OneTime.objects.filter(id=id, started=False)
-    onetime = qs.first()
-    qs.update(started=True)
-    if not onetime:
+class OneTimeValidation(TimeValidation):
+    FIELDS = {"start": "starts_at", "end": "expires_at", "complete": "completed"}
+
+    def __init__(self, cd, changed_data: list[str], logger):
+        super().__init__(cd, changed_data, logger, self.FIELDS)
+
+    def validate_time(self):
+        self.logger.info(f"{self.changed_data} {self.cd}")
+        if (
+            self.end_name not in self.changed_data
+            and self.start_name not in self.changed_data
+        ):
+            return
+        self.time_validation()
+
+    def validate_starts_at(self):
+        if self.start_name not in self.changed_data:
+            return
+        if not self.start:
+            return
+        if self.start < self.now:
+            raise ValidationError("Starting time can not be in past")
         return
-    if onetime.expires_at:
-        schedule_task(id=id, ct_id=ct_id, eta=onetime.expires_at, task_id=task_id, end=True)
 
-
-def end_one_time(id: int):
-    OneTime.objects.filter(id=id).update(expired=True, started=False)
-
-
-def validate_time(cd: dict, changed_data: list):
-    if "expires_at" not in changed_data and "starts_at" not in changed_data:
+    def validate_expires_at(self):
+        if self.end_name not in self.changed_data:
+            return
+        if not self.end:
+            return
+        if self.end <= self.now:
+            raise ValidationError("Expiring time can not be in past")
         return
-    expires_at = cd.get("expires_at")
-    starts_at = cd.get("starts_at")
-    time_validation(starts_at, expires_at, changed_data)
 
-
-def validate_starts_at(cleaned_data: dict, changed_data: dict):
-    starts_at = cleaned_data.get("starts_at")
-    if "starts_at" not in changed_data:
-        return starts_at
-    if not starts_at:
-        return starts_at
-    if starts_at <= timezone.now():
-        raise ValidationError("Starting time can not be in past")
-    return starts_at
-
-
-def validate_expires_at(cleaned_data: dict, changed_data: dict):
-    expires_at = cleaned_data.get("expires_at")
-    if "expires_at" not in changed_data:
-        return expires_at
-    if not expires_at:
-        return expires_at
-    if expires_at <= timezone.now():
-        raise ValidationError("Expiring time can not be in past")
-    return expires_at
-
-
-def validate(cleaned_data: dict, changed_data: dict):
-    validate_time(cleaned_data, changed_data)
-    validate_starts_at(cleaned_data, changed_data)
-    validate_expires_at(cleaned_data, changed_data)
+    def validate(self):
+        self.validate_starts_at()
+        self.validate_expires_at()
+        self.validate_time()

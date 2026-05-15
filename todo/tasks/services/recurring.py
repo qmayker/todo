@@ -1,104 +1,55 @@
 import logging
-from datetime import timedelta
-from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from tasks.models import Recurring, RecurringState, RecurringStateHistory
-from .task_celery import schedule_first_task, schedule_task
-from .validation import time_validation
+from tasks.models import Recurring, RecurringState
+from .validation import TimeValidation
 
 
 logger = logging.getLogger(__name__)
 
 
-@transaction.atomic()
-def create_recurring_state(
-    recurring: Recurring, changed_data: list[str], change: bool = True
-):
-    logger.debug(f"{changed_data}")
-    if not changed_data and change:
-        return
-    update_res = RecurringState.objects.update_or_create(
-        recurring=recurring,
-        defaults={
-            "next_time": recurring.start_time,
-            "ends_at": recurring.start_time + recurring.duration_time,
-        },
-    )
-    state = update_res[0]
+# TODO if only end_time changed - 
+# TODO - task deleting.
+class RecurringServices:
+    def __init__(self, obj: Recurring, changed_data: list[str]):
+        self.obj = obj
+        self.changed_data = changed_data
 
-    def schedule_task_on_commit():
-        schedule_first_task(state, state.next_time, recurring.task.get().id)
+    def create_recurring_state(self) -> RecurringState:
+        if not self.changed_data:
+            state = self.obj.state
+            if state:
+                return self.obj.state
 
-    transaction.on_commit(schedule_task_on_commit)
-
-
-@transaction.atomic
-def start_recurring(id: int, ct_id: int, task_id: int, logger):
-    recurring_state = RecurringState.objects.select_for_update().get(
-        id=id, is_running=False
-    )
-    duration = recurring_state.recurring.duration_time
-    last_run = timezone.now()
-    ends_at = duration + last_run
-    recurring_state.is_running = True
-    recurring_state.last_run_at = last_run
-    recurring_state.ends_at = ends_at
-    recurring_state.next_time = ends_at + recurring_state.recurring.interval
-    recurring_state.save(
-        update_fields=[
-            "is_running",
-            "last_run_at",
-            "ends_at",
-            "next_time",
-        ]
-    )
-
-    def schedule_task_on_commit():
-        schedule_task(
-            id, ct_id, task_id=task_id, eta=recurring_state.ends_at, end=True
+        update_res = RecurringState.objects.update_or_create(
+            recurring=self.obj,
+            defaults={
+                "next_time": self.obj.start_time,
+                "ends_at": self.obj.start_time + self.obj.duration_time,
+            },
         )
-
-    transaction.on_commit(schedule_task_on_commit)
-
-
-@transaction.atomic
-def end_recurring(id: int, ct_id: int, task_id: int, logger):
-    recurring_state = RecurringState.objects.select_for_update().get(
-        id=id, is_running=True
-    )
-    logger.info("Changing is_running field")
-    recurring_state.is_running = False
-    recurring_state.completed = False
-    recurring_state.save()
-    logger.info("Saved")
-    RecurringStateHistory.objects.create(
-        state=recurring_state,
-        completed=recurring_state.completed,
-        started_at=recurring_state.last_run_at,
-        ended_at=recurring_state.ends_at,
-    )
-
-    def schedule_task_on_commit():
-        schedule_task(id, ct_id, task_id=task_id, eta=recurring_state.next_time)
-
-    transaction.on_commit(schedule_task_on_commit)
+        state = update_res[0]
+        return state
 
 
-def validate_time(cleaned_data: dict, changed_data: dict):
-    start_time = cleaned_data.get("start_time")
-    end_time = cleaned_data.get("end_time")
-    if "end_time" and "start_time" not in changed_data:
-        return
-    time_validation(start_time, end_time, changed_data)
+# TODO end_time causes error, with out changing time
+class RecurringValidation(TimeValidation):
+    FIELDS = {"start": "start_time", "end": "end_time"}
 
+    def __init__(self, cd, changed_data: list[str], logger):
+        super().__init__(cd, changed_data, logger, self.FIELDS)
 
-def validate_end_time(cleaned_data: dict):
-    end_time = cleaned_data.get("end_time")
-    if end_time <= timezone.now():
-        raise ValidationError({"end_time": "Must be in future, not past"})
+    def validate_time(self):
+        if self.end_name and self.start_name not in self.changed_data:
+            return
+        self.time_validation()
 
+    def validate_end_time(self):
+        if self.end_name not in self.changed_data:
+            return
+        if self.end <= self.now:
+            raise ValidationError({self.end_name: "Must be in future, not past"})
 
-def validate(cleaned_data: dict, changed_data: dict):
-    validate_time(cleaned_data, changed_data)
-    validate_end_time()
+    def validate(self):
+        self.validate_time()
+        self.validate_end_time()

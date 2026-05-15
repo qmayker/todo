@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from redis import Redis
-from todo.celery import check_task_status
+from todo.celery import check_tasks_status
 from scheduler import models, task_statuses
 from tasks.models import Task
 from .redis_keys import get_task_keys
@@ -21,7 +21,7 @@ def set_task_id(
     """Should be under Lock"""
     if not keys:
         keys = get_task_keys(id, ct)
-    celery_task = check_task_status.apply_async(args=[id, ct, task_id, end], eta=eta)
+    celery_task = check_tasks_status.apply_async(args=[id, ct, task_id, end], eta=eta)
     task = Task.objects.get(id=task_id)
     models.CeleryTask.objects.create(
         celery_id=celery_task.id,

@@ -3,8 +3,9 @@ from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.template.loader import render_to_string
 from django.db import transaction
-from .services.recurring import create_recurring_state
-from .services.one_time import start_first_one_time
+from .services.recurring import RecurringServices
+from .services.one_time import OneTimeServices
+from .services.recurring_state import RecurringStateServices
 from .models import Task, OneTime, Recurring, RecurringState, RecurringStateHistory
 from .admin_forms import RecurringAdminForm, OneTimeForm
 
@@ -21,16 +22,23 @@ class TaskInline(GenericTabularInline):
     validate_min = True
 
 
+# TODO - empty changed_data, but task still being sent to celery
 @admin.register(OneTime)
 class OneTimeAdmin(admin.ModelAdmin):
     list_display = ["expires_at"]
     list_filter = ["expires_at", "expired"]
+    readonly_fields = ["expired", "started"]
     inlines = [TaskInline]
     form = OneTimeForm
 
     def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        transaction.on_commit(lambda: start_first_one_time(obj))
+        service = OneTimeServices(obj=obj, logger=logger)
+        logger.info(f"{obj.completed}")
+        schedule = service.save(form.cleaned_data, form.changed_data)
+        logger.info(f"{obj.completed}")
+        if not schedule.schedule:
+            return
+        transaction.on_commit(lambda: service.schedule_run(service.obj.starts_at))
 
 
 @admin.register(Task)
@@ -89,9 +97,16 @@ class RecurringAdmin(admin.ModelAdmin):
         )
         return html
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj: Recurring, form, change):
+        # obj.starts_at = form.cd.get("starts_at")
+        logger.info(f"{form.cleaned_data}")
         obj.save()
-        create_recurring_state(obj, form.changed_data)
+        service = RecurringServices(obj=obj, changed_data=form.changed_data)
+        state = service.create_recurring_state()
+        state_service = RecurringStateServices(state, logger)
+        transaction.on_commit(
+            lambda: state_service.schedule_run(state_service.obj.next_time)
+        )
 
 
 @admin.register(RecurringStateHistory)

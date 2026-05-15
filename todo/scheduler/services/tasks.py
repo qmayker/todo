@@ -2,7 +2,7 @@ import logging
 from django.utils import timezone
 from django.db import transaction
 from celery import shared_task
-from todo.celery import check_task_status
+from todo.celery import check_tasks_status
 from scheduler.models import CeleryTask
 from scheduler.task_statuses import Status
 
@@ -23,7 +23,7 @@ def check_tasks():
         id__in=ids, status=Status.PROCESSING
     ).select_related("task")
     for task in tasks:
-        check_task_status.apply_async(
+        check_tasks_status.apply_async(
             args=[
                 task.task.object_id,
                 task.task.content_type.id,

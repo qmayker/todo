@@ -52,29 +52,26 @@ class OneTime(models.Model):
     task = GenericRelation(Task, related_query_name="onetime")
 
     def save(self, *args, **kwargs):
-        if not self.starts_at:
-            self.starts_at = timezone.now()
         if self.expires_at and timezone.is_naive(self.expires_at):
             self.expires_at = timezone.make_aware(self.expires_at)
         if self.starts_at and timezone.is_naive(self.starts_at):
             self.starts_at = timezone.make_aware(self.starts_at)
 
-        
         super().save(*args, **kwargs)
 
     def __str__(self):
         return "Onetime task"
-    
-    def mark_completed(self, completed:bool):
+
+    def mark_completed(self, completed: bool):
         qs = OneTime.objects.filter(pk=self.pk)
         qs.update(completed=completed)
 
     @property
     def is_completed(self):
         return self.completed
-        
 
 
+# TODO - duration_time to RecurringState
 class Recurring(models.Model):
     start_time = models.DateTimeField(blank=True)
     end_time = models.DateTimeField()
@@ -84,15 +81,13 @@ class Recurring(models.Model):
 
     def __str__(self):
         return "Recurring task"
-    
+
     def save(self, *args, **kwargs):
-        if not self.start_time:
-            self.start_time = timezone.now()
-        if self.end_time:
+        if self.end_time and self.start_time:
             self.duration_time = self.end_time - self.start_time
         return super().save(*args, **kwargs)
 
-    def mark_completed(self, completed:bool):
+    def mark_completed(self, completed: bool):
         qs = RecurringState.objects.filter(pk=self.state.pk)
         qs.update(completed=completed)
 
