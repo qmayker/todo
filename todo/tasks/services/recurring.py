@@ -8,8 +8,6 @@ from .validation import TimeValidation
 logger = logging.getLogger(__name__)
 
 
-# TODO if only end_time changed - 
-# TODO - task deleting.
 class RecurringServices:
     def __init__(self, obj: Recurring, changed_data: list[str]):
         self.obj = obj
@@ -32,7 +30,6 @@ class RecurringServices:
         return state
 
 
-# TODO end_time causes error, with out changing time
 class RecurringValidation(TimeValidation):
     FIELDS = {"start": "start_time", "end": "end_time"}
 

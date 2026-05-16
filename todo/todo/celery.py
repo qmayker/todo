@@ -22,11 +22,11 @@ def check_tasks_status(self, id: int, ct_id: int, end: bool):
 
     try:
         if ct_id is one_time.OneTimeServices.get_content_type_id():
-            service = one_time.OneTimeServices.get_by_id(
+            service = one_time.OneTimeServices(
                 id, logger=logger, r=r, task_id=self.request.id
             )
         else:
-            service = recurring_state.RecurringStateServices.get_by_id(
+            service = recurring_state.RecurringStateServices(
                 id=id, logger=logger, r=r, task_id=self.request.id
             )
         service.run(end=end)

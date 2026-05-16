@@ -10,17 +10,18 @@ from .types import TaskSchedule
 from .redis_keys import get_task_keys
 
 
+# TODO - stop using obj. Replace it with id.
 class CeleryService(ABC):
     CONTENT_TYPE_ID: int | None
 
     def __init__(
         self,
-        obj: OneTime | RecurringState,
+        obj_id: int,
         logger: Logger,
         r: Redis,
         task_id: str | None = None,
     ):
-        self.obj = obj
+        self.obj_id = obj_id
         self.logger = logger
         self.r = r
         self.task_id = task_id
@@ -43,13 +44,8 @@ class CeleryService(ABC):
     @abstractmethod
     def get_model(): ...
 
-    @classmethod
-    def get_by_id(cls, id: int, *args, **kwargs):
-        obj = cls.get_model().objects.get(id=id)
-        return cls(obj, *args, **kwargs)
-
     def run(self, end: bool):
-        self.logger.info(f"run {self.obj} {end}")
+        self.logger.info(f"run {self.get_model()} {self.obj_id} {end}")
         with Lock(self.r, self.keys["lock_key"], expire=30, auto_renewal=True):
             self._delete_task()
             if end:
@@ -61,14 +57,14 @@ class CeleryService(ABC):
             if not schedule.schedule:
                 return
             self._apply_task(
-                args=[self.obj.id, self.get_content_type_id(), end], eta=schedule.eta
+                args=[self.obj_id, self.get_content_type_id(), end], eta=schedule.eta
             )
 
     def schedule_run(self, eta: datetime):
         with Lock(self.r, self.keys["lock_key"], expire=30, auto_renewal=True):
             self._delete_task()
             self._apply_task(
-                args=[self.obj.id, self.get_content_type_id(), False], eta=eta
+                args=[self.obj_id, self.get_content_type_id(), False], eta=eta
             )
 
     def _apply_task(self, args: list, eta: datetime):
@@ -76,7 +72,12 @@ class CeleryService(ABC):
         self.r.set(self.keys["key"], f"{task.id}")
 
     def _delete_task(self):
-        task_id = self.r.get(self.keys["key"]).decode()
-        self.logger.info(f'{task_id}, self - {self.task_id}')
-        if task_id and task_id != self.task_id:
-            app.control.revoke(task_id, terminate=True)
+        task_id = self.r.get(self.keys["key"])
+        if not task_id:
+            return
+        task_id = task_id.decode()
+        if task_id == self.task_id:
+            self.logger.info(f"task {task_id} is the newest")
+            return
+        self.logger.info(f"revoking task {task_id}")
+        app.control.revoke(task_id, terminate=True)

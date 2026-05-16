@@ -7,35 +7,37 @@ from .types import TaskSchedule
 
 logger = logging.getLogger(__name__)
 
-
+# TODO - start still uses self.obj
 class OneTimeServices(CeleryService):
     CONTENT_TYPE_ID = None
 
-    def __init__(self, obj: OneTime, *args, **kwargs):
-        super().__init__(obj=obj, *args, **kwargs)
-        self.obj: OneTime
+    def __init__(self, obj_id: int, *args, **kwargs):
+        super().__init__(obj_id=obj_id, *args, **kwargs)
         self.start_name = OneTimeValidation.FIELDS.get("start")
         self.completed_name = OneTimeValidation.FIELDS.get("complete")
 
-    def save(self, cd: dict, changed_data: list) -> TaskSchedule:
+    def save(self, obj: OneTime, cd: dict, changed_data: list) -> TaskSchedule:
+        if not changed_data:
+            return TaskSchedule(eta=None, schedule=None)
         if set(changed_data) == {self.completed_name}:
-            self.obj.save()
+            obj.save()
             return TaskSchedule(eta=None, schedule=False)
-        self.obj.starts_at = cd.get(self.start_name)
-        self.obj.started = False
-        self.obj.expired = False
-        self.obj.completed = False
-        self.obj.save()
-        return TaskSchedule(eta=self.obj.starts_at, schedule=True)
+        starts_at = cd.get(self.start_name)
+        obj.starts_at = starts_at
+        obj.started = False
+        obj.expired = False
+        obj.completed = False
+        obj.save()
+        return TaskSchedule(eta=starts_at, schedule=True)
 
     def start(self):
-        self.obj.started = True
-        self.obj.save(update_fields=["started"])
+        task = self.get_model().objects.filter(id=self.obj_id)
+        task.update(started=True)
         return TaskSchedule(eta=self.obj.expires_at, schedule=True)
 
     def end(self):
-        self.obj.expired = True
-        self.obj.save(update_fields=["expired"])
+        task = self.get_model().objects.filter(id=self.obj_id)
+        task.update(expired=True)
         return TaskSchedule(eta=None, schedule=False)
 
     @staticmethod

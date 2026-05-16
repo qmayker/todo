@@ -9,33 +9,45 @@ from .types import TaskSchedule
 class RecurringStateServices(CeleryService):
     CONTENT_TYPE_ID = None
 
-    def __init__(self, obj: RecurringState, *args, **kwargs):
-        super().__init__(obj=obj, *args, **kwargs)
-        self.obj: RecurringState
+    def __init__(self, obj_id: int, *args, **kwargs):
+        super().__init__(obj=obj_id, *args, **kwargs)
 
     @transaction.atomic
     def end(self):
-        self.obj.is_running = False
-        RecurringStateHistory.objects.create(
-            completed=self.obj.completed,
-            state=self.obj,
-            started_at=self.obj.last_run_at,
-            ended_at=self.obj.ends_at,
+        task = (
+            self.get_model()
+            .objects.select_for_update()
+            .get(id=self.obj_id, is_running=True)
         )
-        self.obj.save()
-        return TaskSchedule(eta=self.obj.next_time, schedule=True)
+        task.is_running = False
+        task.save()
+        RecurringStateHistory.objects.create(
+            completed=task.completed,
+            state=task,
+            started_at=task.last_run_at,
+            ended_at=task.ends_at,
+        )
+        return TaskSchedule(eta=task.next_time, schedule=True)
 
+    @transaction.atomic
     def start(self):
-        self.obj.is_running = True
-        self.obj.completed = False
+        task = (
+            self.get_model()
+            .objects.select_for_update()
+            .get(id=self.obj_id, is_running=False)
+        )
+        duration = task.recurring.duration_time
         now = timezone.now()
-        self.obj.last_run_at = now
-        duration = self.obj.recurring.duration_time
         ends_at = now + duration
-        self.obj.ends_at = ends_at
-        self.obj.next_time = ends_at + self.obj.recurring.interval
-        self.obj.save()
-        return TaskSchedule(eta=self.obj.ends_at, schedule=True)
+        next_time = ends_at + task.recurring.interval
+
+        task.is_running = True
+        task.completed = False
+        task.last_run_at = now
+        task.ends_at = ends_at
+        task.next_time = next_time
+        task.save()
+        return TaskSchedule(eta=ends_at, schedule=True)
 
     @staticmethod
     def get_model() -> RecurringState:

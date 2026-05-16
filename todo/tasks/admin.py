@@ -34,9 +34,7 @@ class OneTimeAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         service = OneTimeServices(obj=obj, logger=logger, r=r, task_id=None)
-        logger.info(f"{obj.completed}")
         schedule = service.save(form.cleaned_data, form.changed_data)
-        logger.info(f"{obj.completed}")
         if not schedule.schedule:
             return
         transaction.on_commit(lambda: service.schedule_run(service.obj.starts_at))
@@ -103,7 +101,11 @@ class RecurringAdmin(admin.ModelAdmin):
         obj.save()
         service = RecurringServices(obj=obj, changed_data=form.changed_data)
         state = service.create_recurring_state()
-        state_service = RecurringStateServices(obj=state, logger=logger, r=r, task_id=None)
+        if not service.changed_data:
+            return
+        state_service = RecurringStateServices(
+            obj_id=state.id, logger=logger, r=r, task_id=None
+        )
         transaction.on_commit(
             lambda: state_service.schedule_run(state_service.obj.next_time)
         )
