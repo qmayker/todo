@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.template.loader import render_to_string
 from django.db import transaction
+from todo.redis_client import r
 from .services.recurring import RecurringServices
 from .services.one_time import OneTimeServices
 from .services.recurring_state import RecurringStateServices
@@ -32,7 +33,7 @@ class OneTimeAdmin(admin.ModelAdmin):
     form = OneTimeForm
 
     def save_model(self, request, obj, form, change):
-        service = OneTimeServices(obj=obj, logger=logger)
+        service = OneTimeServices(obj=obj, logger=logger, r=r, task_id=None)
         logger.info(f"{obj.completed}")
         schedule = service.save(form.cleaned_data, form.changed_data)
         logger.info(f"{obj.completed}")
@@ -98,12 +99,11 @@ class RecurringAdmin(admin.ModelAdmin):
         return html
 
     def save_model(self, request, obj: Recurring, form, change):
-        # obj.starts_at = form.cd.get("starts_at")
         logger.info(f"{form.cleaned_data}")
         obj.save()
         service = RecurringServices(obj=obj, changed_data=form.changed_data)
         state = service.create_recurring_state()
-        state_service = RecurringStateServices(state, logger)
+        state_service = RecurringStateServices(obj=state, logger=logger, r=r, task_id=None)
         transaction.on_commit(
             lambda: state_service.schedule_run(state_service.obj.next_time)
         )

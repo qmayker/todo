@@ -1,8 +1,6 @@
 import logging
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from tasks.models import OneTime
-from todo.celery import check_tasks_status
 from .celery import CeleryService
 from .validation import TimeValidation
 from .types import TaskSchedule
@@ -13,8 +11,8 @@ logger = logging.getLogger(__name__)
 class OneTimeServices(CeleryService):
     CONTENT_TYPE_ID = None
 
-    def __init__(self, obj: OneTime, logger: logging.Logger):
-        super().__init__(obj, logger)
+    def __init__(self, obj: OneTime, *args, **kwargs):
+        super().__init__(obj=obj, *args, **kwargs)
         self.obj: OneTime
         self.start_name = OneTimeValidation.FIELDS.get("start")
         self.completed_name = OneTimeValidation.FIELDS.get("complete")

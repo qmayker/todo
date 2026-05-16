@@ -9,8 +9,8 @@ from .types import TaskSchedule
 class RecurringStateServices(CeleryService):
     CONTENT_TYPE_ID = None
 
-    def __init__(self, obj: RecurringState, logger: logging.Logger):
-        super().__init__(obj, logger=logger)
+    def __init__(self, obj: RecurringState, *args, **kwargs):
+        super().__init__(obj=obj, *args, **kwargs)
         self.obj: RecurringState
 
     @transaction.atomic

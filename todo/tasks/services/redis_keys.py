@@ -1,12 +1,11 @@
 def get_task_keys(
     id: int,
     ct_id: int,
-    end: bool = False,
     delete: bool = False,
 ) -> dict:
     keys = {"key": f"task:{id}:{ct_id}"}
     if not delete:
-        lock_key = f"{id}:{ct_id}:{end}"
+        lock_key = f"{id}:{ct_id}"
         keys.update({"lock_key": lock_key})
     else:
         keys.update({"lock_key": f"delete:{id}:{ct_id}"})
