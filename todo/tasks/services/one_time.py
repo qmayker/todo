@@ -1,12 +1,9 @@
-import logging
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from tasks.models import OneTime
 from .celery import CeleryService
 from .validation import TimeValidation
 from .types import TaskSchedule
-
-logger = logging.getLogger(__name__)
 
 
 class OneTimeValidation(TimeValidation):
@@ -16,7 +13,6 @@ class OneTimeValidation(TimeValidation):
         super().__init__(cd, changed_data, logger, self.FIELDS)
 
     def validate_time(self):
-        self.logger.info(f"{self.changed_data} {self.cd}")
         if (
             self.end_name not in self.changed_data
             and self.start_name not in self.changed_data
@@ -57,7 +53,9 @@ class OneTimeServices(CeleryService):
         super().__init__(obj_id=obj_id, *args, **kwargs)
 
     @classmethod
-    def save(cls, obj: OneTime, cd: dict, changed_data: list, change:bool) -> TaskSchedule:
+    def save(
+        cls, obj: OneTime, cd: dict, changed_data: list, change: bool
+    ) -> TaskSchedule:
         if not changed_data and change:
             return TaskSchedule(eta=None, schedule=None)
         if set(changed_data) == {cls.completed_name}:
@@ -71,7 +69,6 @@ class OneTimeServices(CeleryService):
         obj.save()
         return TaskSchedule(eta=starts_at, schedule=True)
 
-    
     @transaction.atomic
     def start(self):
         task = self.get_model().objects.select_for_update().get(id=self.obj_id)

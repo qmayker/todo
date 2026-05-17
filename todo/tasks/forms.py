@@ -1,6 +1,9 @@
+from logging import getLogger
 from django import forms
 from .models import Task, OneTime, Recurring
 from .services import one_time, recurring
+
+logger = getLogger(__name__)
 
 
 class TaskForm(forms.ModelForm):
@@ -21,7 +24,7 @@ class RecurringForm(forms.ModelForm):
     def clean(self):
         cd = super().clean()
         changed_data = self.changed_data
-        validation = recurring.RecurringValidation(cd, changed_data)
+        validation = recurring.RecurringValidation(cd, changed_data, logger)
         validation.validate()
         return cd
 
@@ -38,6 +41,6 @@ class OneTimeForm(forms.ModelForm):
     def clean(self):
         cd = super().clean()
         changed_data = self.changed_data
-        validation = one_time.OneTimeValidation(cd, changed_data)
+        validation = one_time.OneTimeValidation(cd, changed_data, logger)
         validation.validate()
         return cd

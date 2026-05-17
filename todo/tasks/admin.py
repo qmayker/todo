@@ -107,7 +107,6 @@ class RecurringAdmin(admin.ModelAdmin):
         return html
 
     def save_model(self, request, obj: Recurring, form, change):
-        logger.info(f"{form.cleaned_data}")
         obj.save()
         state = RecurringServices.create_recurring_state(
             changed_data=form.changed_data, obj=obj

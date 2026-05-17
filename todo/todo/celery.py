@@ -33,7 +33,6 @@ def check_tasks_status(
     try:
         with Lock(r, celery_id, expire=30, auto_renewal=True, blocking=False):
             update_res = CeleryTask.objects.start_running(celery_id, filter_status)
-            logger.info(f"{update_res}")
             if update_res == 0:
                 return
             if ct_id is one_time.OneTimeServices.get_content_type_id():

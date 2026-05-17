@@ -22,7 +22,6 @@ class TaskServices:
         keys = get_task_keys(obj.object_id, obj.content_type)
         with Lock(self.r, keys["lock_key"], expire=30):
             self.delete_redis_task(self.r, keys)
-            self.logger.info(f"{obj.content_object}")
             obj.content_object.delete()
 
     def delete_qs(self, qs:QuerySet[Task]):

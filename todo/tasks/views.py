@@ -1,20 +1,23 @@
+from logging import getLogger
 from django.views.generic import ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.apps import apps
 from django.http import HttpResponseNotFound, HttpRequest
-from django.forms import ModelForm
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.db.models import QuerySet, Q
 from django.db import transaction
-# from .services.recurring import create_recurring_state
-# from .services.one_time import start_first_one_time
+from todo.redis_client import r
+from .services.recurring import RecurringServices
+from .services.one_time import OneTimeServices
 from .models import Task, OneTime, Recurring
-from .forms import TaskForm, OneTimeForm, RecurringForm
+from .forms import TaskForm
+from .mixins import TaskMixin
 
 
 # Create your views here.
+
+logger = getLogger(__name__)
 
 
 class TaskListView(LoginRequiredMixin, ListView):
@@ -41,6 +44,7 @@ class TaskListView(LoginRequiredMixin, ListView):
         return context
 
 
+# add custom template to History
 class TaskDetailView(LoginRequiredMixin, DetailView):
     model = Task
     template_name = "tasks/task/detail.html"
@@ -58,84 +62,33 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class TaskCreateView(LoginRequiredMixin, View):
-    types = "onetime"
-    template_name = "tasks/task/create.html"
-    success_url = reverse_lazy("tasks:list")
-    models = ["onetime", "recurring"]
-
-    def get_form(self, model) -> type[ModelForm]:
-        if model is OneTime:
-            form = OneTimeForm
-        elif model is Recurring:
-            form = RecurringForm
-        else:
-            raise ValueError("form not found")
-
-        return form
-
-    def get_model(self, name: str):
-        try:
-            model = apps.get_model(app_label="tasks", model_name=name)
-            return model
-        except LookupError:
-            return None
-
-    def dispatch(self, request, *args, **kwargs):
-        task_type = kwargs.get("task_type")
-        if task_type not in self.models:
-            return HttpResponseNotFound()
-        model = self.get_model(task_type)
-        if not model:
-            return HttpResponseNotFound()
-        self.model = model
-        try:
-            self.form_class = self.get_form(model)
-        except Exception:
-            return HttpResponseNotFound()
-        return super().dispatch(request, *args, **kwargs)
+class TaskCreateView(TaskMixin):
+    logger = logger
+    r = r
 
     def get(self, request: HttpRequest, task_type: str):
-        task_form = TaskForm()
-        type_form = self.form_class()
-        return render(
-            request,
-            self.template_name,
-            context={
-                "task_form": task_form,
-                "form": type_form,
-                "model": self.model,
-            },
-        )
+        return super().render_forms(request=self.request, task=None)
 
     def post(self, request: HttpRequest, task_type: str):
-        task_form = TaskForm(request.POST)
+        task_form = self.Taskform(request.POST)
         type_form = self.form_class(request.POST)
-        if task_form.is_valid() and type_form.is_valid():
-            with transaction.atomic():
-                type_obj = type_form.save(commit=False)
-                if isinstance(type_obj, Recurring):
-                    type_obj.save()
-                elif isinstance(type_obj, OneTime):
-                    type_obj.save()
-                task = task_form.save(commit=False)
-                task.user = self.request.user
-                task.content_object = type_obj
-                task.save()
-                # if isinstance(type_obj, Recurring):
-                #     create_recurring_state(type_obj, [], change=False)
-                # elif isinstance(type_obj, OneTime):
-                #     start_first_one_time(type_obj)
+        return super().validate_forms(
+            request=request, task_form=task_form, type_form=type_form
+        )
 
-                messages.add_message(request, messages.SUCCESS, "Task has been created")
-            return redirect(self.success_url)
 
-        return render(
-            request,
-            self.template_name,
-            context={
-                "task_form": task_form,
-                "form": type_form,
-                "model": self.model,
-            },
+class TaskUpdateView(TaskMixin):
+    logger = logger
+    r = r
+
+    def get(self, request: HttpRequest, pk: int, task_type: str):
+        task = get_object_or_404(Task, id=pk)
+        return super().render_forms(request=request, task=task)
+
+    def post(self, request: HttpRequest, pk: int, task_type: str):
+        task = get_object_or_404(Task, id=pk)
+        task_form = self.Taskform(request.POST, instance=task)
+        type_form = self.form_class(request.POST, instance=task.content_object)
+        return super().validate_forms(
+            request=request, task_form=task_form, type_form=type_form
         )
