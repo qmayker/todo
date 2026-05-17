@@ -1,17 +1,9 @@
 from logging import getLogger
-from django.views.generic import ListView, DetailView, View
+from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
-from django.http import HttpResponseNotFound, HttpRequest
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.http import HttpRequest
+from django.shortcuts import get_object_or_404
 from django.db.models import QuerySet, Q
-from django.db import transaction
-from todo.redis_client import r
-from .services.recurring import RecurringServices
-from .services.one_time import OneTimeServices
-from .models import Task, OneTime, Recurring
-from .forms import TaskForm
 from .mixins import TaskMixin
 
 
