@@ -6,7 +6,8 @@ from django.db import transaction
 from todo.redis_client import r
 from .services.recurring import RecurringServices
 from .services.one_time import OneTimeServices
-from .services.recurring_state import RecurringStateServices
+from .services.task import TaskServices
+
 from .models import Task, OneTime, Recurring, RecurringState, RecurringStateHistory
 from .admin_forms import RecurringAdminForm, OneTimeForm
 
@@ -23,7 +24,6 @@ class TaskInline(GenericTabularInline):
     validate_min = True
 
 
-# TODO - empty changed_data, but task still being sent to celery
 @admin.register(OneTime)
 class OneTimeAdmin(admin.ModelAdmin):
     list_display = ["expires_at"]
@@ -47,6 +47,14 @@ class TaskAdmin(admin.ModelAdmin):
     list_display = ["name", "user"]
     search_fields = ["name"]
     list_filter = ["user"]
+
+    def delete_model(self, request, obj: Task):
+        service = TaskServices(logger=logger, r=r)
+        service.delete(obj=obj)
+
+    def delete_queryset(self, request, queryset):
+        service = TaskServices(logger=logger, r=r)
+        service.delete_qs(queryset)
 
 
 class RecurringStateInline(admin.TabularInline):
@@ -106,9 +114,7 @@ class RecurringAdmin(admin.ModelAdmin):
         )
         if not form.changed_data:
             return
-        service = RecurringServices(
-            obj_id=obj.id, logger=logger, r=r, celery_id=None
-        )
+        service = RecurringServices(obj_id=obj.id, logger=logger, r=r, celery_id=None)
         transaction.on_commit(lambda: service.schedule_run(state.next_time))
 
 

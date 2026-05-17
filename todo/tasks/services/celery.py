@@ -70,9 +70,7 @@ class CeleryService(ABC):
             )
 
     def _apply_task(self, end: bool, args: list, eta: datetime):
-        task = check_tasks_status.apply_async(
-            args=args, eta=eta, kwargs={"end": end}
-        )
+        task = check_tasks_status.apply_async(args=args, eta=eta, kwargs={"end": end})
         CeleryTask.objects.create(
             celery_id=task.id,
             task=self.task,
@@ -95,3 +93,6 @@ class CeleryService(ABC):
     def task(self) -> Task:
         obj = self.get_model().objects.get(id=self.obj_id)
         return obj.get_task()
+
+
+
