@@ -15,10 +15,14 @@ app.autodiscover_tasks()
 
 @app.task(name="check_task_status", bind=True)
 def check_tasks_status(
-    self, id: int, ct_id: int, end: bool, celery_id: str | None = None
+    self,
+    id: int,
+    ct_id: int,
+    end: bool,
+    celery_id: str | None = None,
 ):
     from scheduler.models import CeleryTask
-    from tasks.services import one_time, recurring_state, recurring
+    from tasks.services import one_time, recurring
     from .redis_client import r
 
     if not celery_id:
@@ -37,9 +41,8 @@ def check_tasks_status(
                     obj_id=id, logger=logger, r=r, celery_id=self.request.id
                 )
             else:
-                recurring_service = recurring.RecurringServices.get_by_id(id)
-                service = recurring_state.RecurringStateServices(
-                    obj_id=recurring_service.get_state_id(),
+                service = recurring.RecurringServices(
+                    obj_id=id,
                     logger=logger,
                     r=r,
                     celery_id=self.request.id,

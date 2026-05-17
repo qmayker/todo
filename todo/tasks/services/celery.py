@@ -70,7 +70,9 @@ class CeleryService(ABC):
             )
 
     def _apply_task(self, end: bool, args: list, eta: datetime):
-        task = check_tasks_status.apply_async(args=args, eta=eta, kwargs={"end": end})
+        task = check_tasks_status.apply_async(
+            args=args, eta=eta, kwargs={"end": end}
+        )
         CeleryTask.objects.create(
             celery_id=task.id,
             task=self.task,
@@ -85,12 +87,10 @@ class CeleryService(ABC):
             return
         task_id = task_id.decode()
         if task_id == self.celery_id:
-            self.logger.info(f"task {task_id} is the newest")
             return
         self.logger.info(f"revoking task {task_id}")
         app.control.revoke(task_id, terminate=True)
 
-    # TODO
     @property
     def task(self) -> Task:
         obj = self.get_model().objects.get(id=self.obj_id)

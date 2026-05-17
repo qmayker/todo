@@ -1,15 +1,12 @@
 from django.db import transaction
 from django.utils import timezone
 from tasks.models import RecurringState, RecurringStateHistory
-from .celery import CeleryService
 from .types import TaskSchedule
 
 
-class RecurringStateServices(CeleryService):
-    CONTENT_TYPE_ID = None
-
-    def __init__(self, obj_id: int, *args, **kwargs):
-        super().__init__(obj_id=obj_id, *args, **kwargs)
+class RecurringStateServices():
+    def __init__(self, obj_id:int):
+        self.obj_id = obj_id
 
     @transaction.atomic
     def end(self):

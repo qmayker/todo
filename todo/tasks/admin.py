@@ -101,16 +101,15 @@ class RecurringAdmin(admin.ModelAdmin):
     def save_model(self, request, obj: Recurring, form, change):
         logger.info(f"{form.cleaned_data}")
         obj.save()
-        service = RecurringServices(obj=obj)
-        state = service.create_recurring_state(changed_data=form.changed_data)
-        if not service.changed_data:
+        state = RecurringServices.create_recurring_state(
+            changed_data=form.changed_data, obj=obj
+        )
+        if not form.changed_data:
             return
-        state_service = RecurringStateServices(
-            obj_id=state.id, logger=logger, r=r, celery_id=None
+        service = RecurringServices(
+            obj_id=obj.id, logger=logger, r=r, celery_id=None
         )
-        transaction.on_commit(
-            lambda: state_service.schedule_run(state.next_time)
-        )
+        transaction.on_commit(lambda: service.schedule_run(state.next_time))
 
 
 @admin.register(RecurringStateHistory)

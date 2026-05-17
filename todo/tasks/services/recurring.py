@@ -1,40 +1,56 @@
 import logging
 from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState
+from .types import TaskSchedule
 from .validation import TimeValidation
+from .celery import CeleryService
+from .recurring_state import RecurringStateServices
 
 
 logger = logging.getLogger(__name__)
 
 
 # TODO - remake with CeleryService
-class RecurringServices:
-    def __init__(self, obj: Recurring):
-        self.obj = obj
+class RecurringServices(CeleryService):
+    CONTENT_TYPE_ID = None
 
-    def create_recurring_state(self, changed_data: list[str]) -> RecurringState:
+    def __init__(self, obj_id: int, *args, **kwargs):
+        super().__init__(obj_id=obj_id, *args, **kwargs)
+        obj = Recurring.objects.select_related().only("state__id").get(id=obj_id)
+        self.state_service = RecurringStateServices(obj.state.id)
+
+    @staticmethod
+    def create_recurring_state(
+        changed_data: list[str], obj: Recurring
+    ) -> RecurringState:
         if not changed_data:
-            state = self.obj.state
+            state = obj.state
             if state:
-                return self.obj.state
+                return obj.state
 
         update_res = RecurringState.objects.update_or_create(
-            recurring=self.obj,
+            recurring=obj,
             defaults={
-                "next_time": self.obj.start_time,
-                "ends_at": self.obj.start_time + self.obj.duration_time,
+                "next_time": obj.start_time,
+                "ends_at": obj.start_time + obj.duration_time,
             },
         )
         state = update_res[0]
         return state
 
-    # TODO - return state_id for celery task
-    def get_state_id(self):
-        return self.obj.state.id
-
     @classmethod
     def get_by_id(cls, id: int):
         return cls(Recurring.objects.get(id=id))
+
+    @staticmethod
+    def get_model() -> Recurring:
+        return Recurring
+
+    def start(self) -> TaskSchedule:
+        return self.state_service.start()
+
+    def end(self) -> TaskSchedule:
+        return self.state_service.end()
 
 
 class RecurringValidation(TimeValidation):
