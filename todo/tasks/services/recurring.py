@@ -1,4 +1,3 @@
-import logging
 from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState
 from .types import TaskSchedule
@@ -7,10 +6,6 @@ from .celery import CeleryService
 from .recurring_state import RecurringStateServices
 
 
-logger = logging.getLogger(__name__)
-
-
-# TODO - remake with CeleryService
 class RecurringServices(CeleryService):
     CONTENT_TYPE_ID = None
 
@@ -24,9 +19,11 @@ class RecurringServices(CeleryService):
         changed_data: list[str], obj: Recurring
     ) -> RecurringState:
         if not changed_data:
-            state = obj.state
-            if state:
+            try:
+                state = obj.state
                 return obj.state
+            except RecurringState.DoesNotExist:
+                state = None
 
         update_res = RecurringState.objects.update_or_create(
             recurring=obj,
