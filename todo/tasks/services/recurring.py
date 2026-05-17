@@ -1,5 +1,4 @@
 import logging
-from django.utils import timezone
 from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState
 from .validation import TimeValidation
@@ -8,13 +7,13 @@ from .validation import TimeValidation
 logger = logging.getLogger(__name__)
 
 
+# TODO - remake with CeleryService
 class RecurringServices:
-    def __init__(self, obj: Recurring, changed_data: list[str]):
+    def __init__(self, obj: Recurring):
         self.obj = obj
-        self.changed_data = changed_data
 
-    def create_recurring_state(self) -> RecurringState:
-        if not self.changed_data:
+    def create_recurring_state(self, changed_data: list[str]) -> RecurringState:
+        if not changed_data:
             state = self.obj.state
             if state:
                 return self.obj.state
@@ -28,6 +27,14 @@ class RecurringServices:
         )
         state = update_res[0]
         return state
+
+    # TODO - return state_id for celery task
+    def get_state_id(self):
+        return self.obj.state.id
+
+    @classmethod
+    def get_by_id(cls, id: int):
+        return cls(Recurring.objects.get(id=id))
 
 
 class RecurringValidation(TimeValidation):

@@ -70,6 +70,9 @@ class OneTime(models.Model):
     def is_completed(self):
         return self.completed
 
+    def get_task(self):
+        return self.task.first()
+
 
 # TODO - duration_time to RecurringState
 class Recurring(models.Model):
@@ -105,6 +108,9 @@ class RecurringState(models.Model):
     last_run_at = models.DateTimeField(null=True, blank=True)
     next_time = models.DateTimeField(blank=True)
     ends_at = models.DateTimeField(blank=True)
+
+    def get_task(self):
+        return self.recurring.task.first()
 
 
 class RecurringStateHistory(models.Model):

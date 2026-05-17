@@ -4,7 +4,8 @@ from django.db.models import QuerySet, Q
 class TaskQuerySet(QuerySet):
     def active(self):
         return self.filter(
-            Q(onetime__started=True) | Q(recurring__state__is_running=True)
+            Q(onetime__started=True, onetime__expired=False)
+            | Q(recurring__state__is_running=True)
         )
 
     def expired(self):

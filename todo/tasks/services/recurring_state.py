@@ -1,4 +1,3 @@
-import logging
 from django.db import transaction
 from django.utils import timezone
 from tasks.models import RecurringState, RecurringStateHistory
@@ -10,7 +9,7 @@ class RecurringStateServices(CeleryService):
     CONTENT_TYPE_ID = None
 
     def __init__(self, obj_id: int, *args, **kwargs):
-        super().__init__(obj=obj_id, *args, **kwargs)
+        super().__init__(obj_id=obj_id, *args, **kwargs)
 
     @transaction.atomic
     def end(self):

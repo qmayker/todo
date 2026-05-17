@@ -23,12 +23,9 @@ def check_tasks():
         id__in=ids, status=Status.PROCESSING
     ).select_related("task")
     for task in tasks:
-        check_tasks_status.apply_async(
-            args=[
-                task.task.object_id,
-                task.task.content_type.id,
-                task.task.id,
-                task.ending,
-                task.celery_id,
-            ]
+        check_tasks_status.delay(
+            id=task.task.object_id,
+            ct_id=task.task.content_type.id,
+            end=task.ending,
+            celery_id=task.celery_id,
         )

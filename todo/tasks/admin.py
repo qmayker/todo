@@ -33,11 +33,13 @@ class OneTimeAdmin(admin.ModelAdmin):
     form = OneTimeForm
 
     def save_model(self, request, obj, form, change):
-        service = OneTimeServices(obj=obj, logger=logger, r=r, task_id=None)
-        schedule = service.save(form.cleaned_data, form.changed_data)
+        schedule = OneTimeServices.save(
+            obj=obj, cd=form.cleaned_data, changed_data=form.changed_data, change=change
+        )
         if not schedule.schedule:
             return
-        transaction.on_commit(lambda: service.schedule_run(service.obj.starts_at))
+        service = OneTimeServices(obj_id=obj.id, logger=logger, r=r, celery_id=None)
+        transaction.on_commit(lambda: service.schedule_run(obj.starts_at))
 
 
 @admin.register(Task)
@@ -51,14 +53,14 @@ class RecurringStateInline(admin.TabularInline):
     model = RecurringState
     extra = 0
 
-    # def has_change_permission(self, request, obj=None):
-    #     return False
+    def has_change_permission(self, request, obj=None):
+        return False
 
-    # def has_add_permission(self, request, obj=None):
-    #     return False
+    def has_add_permission(self, request, obj=None):
+        return False
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Recurring)
@@ -99,15 +101,15 @@ class RecurringAdmin(admin.ModelAdmin):
     def save_model(self, request, obj: Recurring, form, change):
         logger.info(f"{form.cleaned_data}")
         obj.save()
-        service = RecurringServices(obj=obj, changed_data=form.changed_data)
-        state = service.create_recurring_state()
+        service = RecurringServices(obj=obj)
+        state = service.create_recurring_state(changed_data=form.changed_data)
         if not service.changed_data:
             return
         state_service = RecurringStateServices(
-            obj_id=state.id, logger=logger, r=r, task_id=None
+            obj_id=state.id, logger=logger, r=r, celery_id=None
         )
         transaction.on_commit(
-            lambda: state_service.schedule_run(state_service.obj.next_time)
+            lambda: state_service.schedule_run(state.next_time)
         )
 
 

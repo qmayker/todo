@@ -59,8 +59,6 @@ class TaskSerializer(ModelSerializer):
             raise ValidationError({"unknown error": f"{e}"})
         return task
 
-    # custom validate
-
 
 class TaskListSerializer(ModelSerializer):
     url = SerializerMethodField()

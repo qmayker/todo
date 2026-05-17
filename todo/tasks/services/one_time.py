@@ -1,48 +1,12 @@
 import logging
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from tasks.models import OneTime
 from .celery import CeleryService
 from .validation import TimeValidation
 from .types import TaskSchedule
 
 logger = logging.getLogger(__name__)
-
-# TODO - start still uses self.obj
-class OneTimeServices(CeleryService):
-    CONTENT_TYPE_ID = None
-
-    def __init__(self, obj_id: int, *args, **kwargs):
-        super().__init__(obj_id=obj_id, *args, **kwargs)
-        self.start_name = OneTimeValidation.FIELDS.get("start")
-        self.completed_name = OneTimeValidation.FIELDS.get("complete")
-
-    def save(self, obj: OneTime, cd: dict, changed_data: list) -> TaskSchedule:
-        if not changed_data:
-            return TaskSchedule(eta=None, schedule=None)
-        if set(changed_data) == {self.completed_name}:
-            obj.save()
-            return TaskSchedule(eta=None, schedule=False)
-        starts_at = cd.get(self.start_name)
-        obj.starts_at = starts_at
-        obj.started = False
-        obj.expired = False
-        obj.completed = False
-        obj.save()
-        return TaskSchedule(eta=starts_at, schedule=True)
-
-    def start(self):
-        task = self.get_model().objects.filter(id=self.obj_id)
-        task.update(started=True)
-        return TaskSchedule(eta=self.obj.expires_at, schedule=True)
-
-    def end(self):
-        task = self.get_model().objects.filter(id=self.obj_id)
-        task.update(expired=True)
-        return TaskSchedule(eta=None, schedule=False)
-
-    @staticmethod
-    def get_model() -> OneTime:
-        return OneTime
 
 
 class OneTimeValidation(TimeValidation):
@@ -82,3 +46,48 @@ class OneTimeValidation(TimeValidation):
         self.validate_starts_at()
         self.validate_expires_at()
         self.validate_time()
+
+
+class OneTimeServices(CeleryService):
+    CONTENT_TYPE_ID = None
+    start_name = OneTimeValidation.FIELDS.get("start")
+    completed_name = OneTimeValidation.FIELDS.get("complete")
+
+    def __init__(self, obj_id: int, *args, **kwargs):
+        super().__init__(obj_id=obj_id, *args, **kwargs)
+
+    @classmethod
+    def save(cls, obj: OneTime, cd: dict, changed_data: list, change:bool) -> TaskSchedule:
+        if not changed_data and change:
+            return TaskSchedule(eta=None, schedule=None)
+        if set(changed_data) == {cls.completed_name}:
+            obj.save()
+            return TaskSchedule(eta=None, schedule=False)
+        starts_at = cd.get(cls.start_name)
+        obj.starts_at = starts_at
+        obj.started = False
+        obj.expired = False
+        obj.completed = False
+        obj.save()
+        return TaskSchedule(eta=starts_at, schedule=True)
+
+    
+    @transaction.atomic
+    def start(self):
+        task = self.get_model().objects.select_for_update().get(id=self.obj_id)
+        task.started = True
+        task.save()
+
+        if not task.expires_at:
+            return TaskSchedule(eta=None, schedule=False)
+
+        return TaskSchedule(eta=task.expires_at, schedule=True)
+
+    def end(self):
+        task = self.get_model().objects.filter(id=self.obj_id)
+        task.update(expired=True)
+        return TaskSchedule(eta=None, schedule=False)
+
+    @staticmethod
+    def get_model() -> OneTime:
+        return OneTime

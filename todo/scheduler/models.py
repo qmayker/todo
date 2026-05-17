@@ -14,7 +14,7 @@ class CeleryTask(models.Model):
     )
     start = models.DateTimeField()
     ending = models.BooleanField(default=False)  # if this starting or ending Task
-    status = models.CharField(choices=Status)
+    status = models.CharField(choices=Status, default=Status.RECEIVED)
     objects = CeleryTaskQueryset.as_manager()
 
     class Meta:
