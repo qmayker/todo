@@ -54,7 +54,6 @@ class TaskDetailView(LoginRequiredMixin, View):
             self.ServiceClass = TaskDetail
         return super().dispatch(request, pk=pk, history_pk=history_pk, *args, **kwargs)
 
-    # add methods to objects
     def get_queryset(self):
         if not self.ServiceClass:
             return QuerySet.none()

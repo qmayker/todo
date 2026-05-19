@@ -6,7 +6,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
-from .querysets import OneTimeQuerySet, HistoryQuerySet
+from .querysets import OneTimeQuerySet, HistoryQuerySet, TaskQuerySet
 
 
 class Task(models.Model):
@@ -20,6 +20,7 @@ class Task(models.Model):
     )
     object_id = models.PositiveBigIntegerField(null=True)
     content_object = GenericForeignKey("content_type", "object_id")
+    objects = TaskQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created"]
@@ -134,7 +135,8 @@ class RecurringState(models.Model):
     class Meta:
         indexes = [models.Index(fields=["id", "is_running"])]
 
-# add a Task-relative id 
+
+# add a Task-relative id
 class RecurringStateHistory(models.Model):
     completed = models.BooleanField(default=False)
     state = models.ForeignKey(

@@ -52,9 +52,5 @@ class TaskDetail:
 
     @classmethod
     def get_queryset(cls, request: HttpRequest):
-        queryset = (
-            cls.model.objects.all()
-            .filter(user=request.user)
-            .prefetch_related("content_object")
-        )
+        queryset = cls.model.objects.get_detail_qs(user=request.user)
         return queryset

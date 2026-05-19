@@ -24,5 +24,5 @@ class HistoryDetail:
 
     @classmethod
     def get_queryset(cls, request: HttpRequest):
-        queryset = cls.model.objects.all().filter(task__user=request.user)
+        queryset = cls.model.objects.get_detail_qs(user=request.user)
         return queryset

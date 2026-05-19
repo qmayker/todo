@@ -1,6 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
-from tasks.models import RecurringState, RecurringStateHistory, Recurring, Task
+from tasks.models import RecurringState, RecurringStateHistory, Task
 from .types import TaskSchedule
 
 
