@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from tasks.models import Recurring, RecurringState
+from tasks.models import Recurring, RecurringState, Task
 from .types import TaskSchedule
 from .validation import TimeValidation
 from .celery import CeleryService
@@ -47,7 +47,10 @@ class RecurringServices(CeleryService):
         return self.state_service.start()
 
     def end(self) -> TaskSchedule:
-        return self.state_service.end()
+        task = Task.objects.get(
+            object_id=self.obj_id, content_type__id=self.get_content_type_id()
+        )
+        return self.state_service.end(task=task)
 
 
 class RecurringValidation(TimeValidation):

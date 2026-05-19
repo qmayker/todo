@@ -1,10 +1,21 @@
+from logging import getLogger
 from rest_framework import permissions, viewsets, response
 from rest_framework.decorators import action
-from tasks.models import Task
+from tasks.models import Task, OneTime, Recurring, RecurringStateHistory
 from tasks.services.api import TaskList
-from .serializers import TaskSerializer, TaskListSerializer, TaskStatusSerializer
+from .serializers import (
+    TaskSerializer,
+    TaskListSerializer,
+    TaskStatusSerializer,
+    HistorySerializer,
+    RecurringSerializer,
+    OneTimeSerializer,
+)
+
+logger = getLogger(__name__)
 
 
+# add js optimization(pagination)
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -36,6 +47,9 @@ class TaskViewSet(viewsets.ModelViewSet):
         filter_method = self.task_list.filters.get(category)
         if not filter_method:
             return response.Response("This category does not exist")
-        qs = filter_method(self.get_queryset())
-        serializer = self.get_serializer(qs, many=True)
-        return response.Response(serializer.data)
+        tasks: dict = filter_method(self.get_queryset())
+        data = []
+        data.extend(OneTimeSerializer(tasks.get("onetime"), many=True).data)
+        data.extend(RecurringSerializer(tasks.get("recurring"), many=True).data)
+        data.extend(HistorySerializer(tasks.get("history"), many=True).data)
+        return response.Response(data=data)

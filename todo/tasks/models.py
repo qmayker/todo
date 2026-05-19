@@ -6,7 +6,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
-from .querysets import TaskQuerySet
+from .querysets import OneTimeQuerySet, HistoryQuerySet
 
 
 class Task(models.Model):
@@ -20,7 +20,6 @@ class Task(models.Model):
     )
     object_id = models.PositiveBigIntegerField(null=True)
     content_object = GenericForeignKey("content_type", "object_id")
-    objects = TaskQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created"]
@@ -50,6 +49,13 @@ class OneTime(models.Model):
     expired = models.BooleanField(default=False, blank=True)
     completed = models.BooleanField(default=False, blank=True)
     task = GenericRelation(Task, related_query_name="onetime")
+    objects = OneTimeQuerySet.as_manager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["started", "expired"]),
+            models.Index(fields=["expired", "completed"]),
+        ]
 
     def save(self, *args, **kwargs):
         if self.expires_at and timezone.is_naive(self.expires_at):
@@ -112,7 +118,10 @@ class RecurringState(models.Model):
     next_time = models.DateTimeField(blank=True)
     ends_at = models.DateTimeField(blank=True)
 
+    # add indexes
 
+
+# add task_id, task_name
 class RecurringStateHistory(models.Model):
     completed = models.BooleanField(default=False)
     state = models.ForeignKey(
@@ -120,18 +129,20 @@ class RecurringStateHistory(models.Model):
         on_delete=models.CASCADE,
         related_name="history",
     )
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
     started_at = models.DateTimeField()
     ended_at = models.DateTimeField()
+    task_name = models.CharField()
+    objects = HistoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["-ended_at"]
 
+    # TODO - update
     def save(self, *args, **kwargs):
         if not self.state:
-            raise ValueError("")
+            return super().save(*args, **kwargs)
         self.started_at = self.state.last_run_at
-        if not self.started_at:
-            raise ValueError("")
         return super().save(*args, **kwargs)
 
     def get_admin_url(self):
@@ -139,3 +150,6 @@ class RecurringStateHistory(models.Model):
             f"admin:{self._meta.app_label}_{self._meta.model_name}_change",
             args=[self.pk],
         )
+
+    def get_absolute_url(self):
+        return reverse("tasks:history_detail", args=[self.task_id, self.pk])

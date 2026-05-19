@@ -1,3 +1,4 @@
+from logging import Logger
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from rest_framework.serializers import (
@@ -7,7 +8,7 @@ from rest_framework.serializers import (
     Serializer,
     BooleanField,
 )
-from tasks.models import Task, OneTime, Recurring
+from tasks.models import Task, OneTime, Recurring, RecurringStateHistory
 from .fields import TaskTypeField, TaskObjectField
 
 
@@ -62,14 +63,72 @@ class TaskSerializer(ModelSerializer):
 
 class TaskListSerializer(ModelSerializer):
     url = SerializerMethodField()
+    ct = SerializerMethodField()
+
+    def __init__(self, instance=None, data=..., **kwargs):
+        logger: Logger = kwargs.pop("logger")
+        super().__init__(instance, data, **kwargs)
+        self.logger = logger
 
     class Meta:
         model = Task
-        fields = ["name", "url"]
+        fields = ["name", "url", "ct", "id"]
 
     def get_url(self, obj: Task):
         return obj.get_absolute_url()
 
+    def get_ct(self, obj: Task):
+        return obj.content_type.model
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return data
+
 
 class TaskStatusSerializer(Serializer):
     completed = BooleanField()
+
+
+class HistorySerializer(ModelSerializer):
+    url = SerializerMethodField()
+    name = SerializerMethodField()
+
+    class Meta:
+        model = RecurringStateHistory
+        fields = ["id", "url", "name"]
+
+    def get_url(self, obj: RecurringStateHistory):
+        return obj.get_absolute_url()
+
+    def get_name(self, obj: RecurringStateHistory):
+        return obj.task_name
+
+
+class OneTimeSerializer(ModelSerializer):
+    url = SerializerMethodField()
+    name = SerializerMethodField()
+
+    class Meta:
+        model = OneTime
+        fields = ["url", "name", "id"]
+
+    def get_url(self, obj: OneTime):
+        return obj.task.first().get_absolute_url()
+
+    def get_name(self, obj: OneTime):
+        return obj.task.first().name
+
+
+class RecurringSerializer(ModelSerializer):
+    url = SerializerMethodField()
+    name = SerializerMethodField()
+
+    class Meta:
+        model = Recurring
+        fields = ["url", "name", "id"]
+
+    def get_url(self, obj: OneTime):
+        return obj.task.first().get_absolute_url()
+
+    def get_name(self, obj: OneTime):
+        return obj.task.first().name

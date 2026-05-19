@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -54,7 +55,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "tasks.middlewares.TimeZoneMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "todo.urls"
@@ -128,8 +128,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-INTERNAL_IPS = ["127.0.0.1", "localhost", "0.0.0.0"] + ips
+hostname = socket.gethostname()
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+    socket.gethostbyname(hostname),
+]
 
 
 # Templates
@@ -164,3 +168,10 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+
+def show_debug(*args, **kwargs):
+    return True
+
+
+DEBUG_TOOLBAR_CONFIG = {"SHOW_TOOLBAR_CALLBACK": show_debug}

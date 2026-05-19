@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', e=>{
             ).then((data)=>{
                 let tasks = "";
                 const fragment = document.createDocumentFragment();
+                console.log(data);
                 data.forEach(element => {
                     const a = document.createElement('a');
                     const p = document.createElement('p');
