@@ -1,11 +1,13 @@
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.db.models import QuerySet, Q
 from logging import getLogger
 from todo.redis_client import r
-from .models import Task
+from .services.task import TaskDetail
+from .services.history import HistoryDetail
+from .models import Task, RecurringStateHistory
 from .mixins import TaskMixin
 
 
@@ -38,22 +40,29 @@ class TaskListView(LoginRequiredMixin, ListView):
         return context
 
 
-# add custom template to History
-class TaskDetailView(LoginRequiredMixin, DetailView):
-    model = Task
-    template_name = "tasks/task/detail.html"
+class TaskDetailView(LoginRequiredMixin, View):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.ServiceClass = None
 
+    def dispatch(
+        self, request, pk: int, history_pk: int | None = None, *args, **kwargs
+    ):
+        if history_pk:
+            self.ServiceClass = HistoryDetail
+        else:
+            self.ServiceClass = TaskDetail
+        return super().dispatch(request, pk=pk, history_pk=history_pk, *args, **kwargs)
+
+    # add methods to objects
     def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.filter(user=self.request.user).prefetch_related(
-            "content_object"
-        )
-        return queryset
+        if not self.ServiceClass:
+            return QuerySet.none()
+        return self.ServiceClass.get_queryset(self.request)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["object_type"] = self.object.content_object
-        return context
+    def get(self, request, pk: int, history_pk: int | None = None):
+        service = self.ServiceClass(self.get_queryset())
+        return service.get(request, pk, history_pk)
 
 
 class TaskCreateView(TaskMixin):

@@ -134,7 +134,7 @@ class RecurringState(models.Model):
     class Meta:
         indexes = [models.Index(fields=["id", "is_running"])]
 
-
+# add a Task-relative id 
 class RecurringStateHistory(models.Model):
     completed = models.BooleanField(default=False)
     state = models.ForeignKey(
@@ -150,6 +150,7 @@ class RecurringStateHistory(models.Model):
 
     class Meta:
         ordering = ["-ended_at"]
+        indexes = [models.Index(fields=["ended_at"])]
 
     def save(self, *args, **kwargs):
         if not self.state:
