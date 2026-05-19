@@ -5,7 +5,6 @@ from tasks.models import Task, OneTime, Recurring, RecurringStateHistory
 from tasks.services.api import TaskList
 from .serializers import (
     TaskSerializer,
-    TaskListSerializer,
     TaskStatusSerializer,
     HistorySerializer,
     RecurringSerializer,
@@ -27,6 +26,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    #add so unactive cannot become completed
     @action(methods=["post"], detail=True, serializer_class=TaskStatusSerializer)
     def mark_completed(self, request, pk=None):
         task = self.get_object()
@@ -37,7 +37,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             return response.Response(data)
         return response.Response(serializer.errors)
 
-    @action(methods=["get"], detail=False, serializer_class=TaskListSerializer)
+    @action(methods=["get"], detail=False)
     def get_category(self, request):
         category = request.GET.get("cat")
         if not category:

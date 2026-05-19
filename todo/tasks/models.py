@@ -79,8 +79,14 @@ class OneTime(models.Model):
     def get_task(self):
         return self.task.first()
 
+    @property
+    def task_name(self):
+        return self.task.first().name
 
-# TODO - duration_time to RecurringState
+    def get_absolute_url(self):
+        return reverse("tasks:detail", kwargs={"pk": self.task.first().pk})
+
+
 class Recurring(models.Model):
     start_time = models.DateTimeField(blank=True)
     end_time = models.DateTimeField()
@@ -107,6 +113,13 @@ class Recurring(models.Model):
     def get_task(self):
         return self.task.first()
 
+    def get_absolute_url(self):
+        return reverse("tasks:detail", kwargs={"pk": self.task.first().pk})
+
+    @property
+    def task_name(self):
+        return self.task.first().name
+
 
 class RecurringState(models.Model):
     recurring = models.OneToOneField(
@@ -118,10 +131,10 @@ class RecurringState(models.Model):
     next_time = models.DateTimeField(blank=True)
     ends_at = models.DateTimeField(blank=True)
 
-    # add indexes
+    class Meta:
+        indexes = [models.Index(fields=["id", "is_running"])]
 
 
-# add task_id, task_name
 class RecurringStateHistory(models.Model):
     completed = models.BooleanField(default=False)
     state = models.ForeignKey(
@@ -138,7 +151,6 @@ class RecurringStateHistory(models.Model):
     class Meta:
         ordering = ["-ended_at"]
 
-    # TODO - update
     def save(self, *args, **kwargs):
         if not self.state:
             return super().save(*args, **kwargs)
