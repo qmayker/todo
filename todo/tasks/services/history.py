@@ -1,6 +1,6 @@
 from django.http import HttpRequest
 from django.db.models import QuerySet
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from tasks.models import RecurringStateHistory
 
 
@@ -12,7 +12,7 @@ class HistoryDetail:
         self.qs = qs
 
     def get_object(self, pk: int):
-        return self.qs.get(id=pk)
+        return get_object_or_404(self.qs, id=pk)
 
     def get(self, request: HttpRequest, pk: int, history_pk: int):
         obj = self.get_object(pk=history_pk)

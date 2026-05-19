@@ -1,4 +1,4 @@
-from django.views.generic import ListView, DetailView, View
+from django.views.generic import ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
@@ -7,7 +7,7 @@ from logging import getLogger
 from todo.redis_client import r
 from .services.task import TaskDetail
 from .services.history import HistoryDetail
-from .models import Task, RecurringStateHistory
+from .models import Task
 from .mixins import TaskMixin
 
 
