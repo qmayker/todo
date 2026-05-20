@@ -1,28 +1,22 @@
 from django.http import HttpRequest
 from django.db.models import QuerySet
-from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
+from .views import BaseViewService
+from django.shortcuts import render
 from tasks.models import RecurringStateHistory
 
 
-class HistoryDetail:
+class HistoryViewService(BaseViewService):
     template_name = "tasks/history/detail.html"
     model = RecurringStateHistory
 
-    def __init__(self, qs: QuerySet[RecurringStateHistory]):
-        self.qs = qs
+    def __init__(self, qs: QuerySet[RecurringStateHistory], pk: int):
+        super().__init__(qs, pk)
+        self.qs: QuerySet[RecurringStateHistory]
 
-    def get_object(self, pk: int):
-        return get_object_or_404(self.qs, id=pk)
-
-    def get(self, request: HttpRequest, pk: int, history_pk: int):
-        obj = self.get_object(pk=history_pk)
+    def get(self, request: HttpRequest):
         return render(
             request=request,
             template_name=self.template_name,
-            context={"object": obj},
+            context={"object": self.object},
         )
-
-    @classmethod
-    def get_queryset(cls, request: HttpRequest):
-        queryset = cls.model.objects.get_detail_qs(user=request.user)
-        return queryset

@@ -23,13 +23,14 @@ class RecurringServices(CeleryService):
                 state = obj.state
                 return obj.state
             except RecurringState.DoesNotExist:
-                state = None
+                ...
 
         update_res = RecurringState.objects.update_or_create(
             recurring=obj,
             defaults={
                 "next_time": obj.start_time,
                 "ends_at": obj.start_time + obj.duration_time,
+                "is_running": False,
             },
         )
         state = update_res[0]

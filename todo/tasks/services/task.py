@@ -1,11 +1,13 @@
 from django.db.models import QuerySet
 from django.http import HttpRequest
 from django.shortcuts import render
+from django.urls import reverse_lazy
 from redis import Redis
 from redis_lock import Lock
 from logging import Logger
 from tasks.models import Task
 from todo.celery import app
+from .views import BaseViewService
 from .redis_keys import get_task_keys
 
 
@@ -31,26 +33,18 @@ class TaskServices:
             self.delete(obj)
 
 
-class TaskDetail:
+class TaskViewService(BaseViewService):
     template_name = "tasks/task/detail.html"
     model = Task
 
-    def __init__(self, qs: QuerySet[Task]):
-        self.qs = qs
+    def __init__(self, qs: QuerySet[Task], pk: int):
+        super().__init__(qs=qs, pk=pk)
+        self.qs: QuerySet[Task]
 
-    def get_object(self, pk: int):
-        return self.qs.get(id=pk)
-
-    def get(self, request: HttpRequest, pk: int, *args):
-        obj = self.get_object(pk=pk)
-        content_object = obj.content_object
+    def get(self, request: HttpRequest, *args):
+        content_object = self.object.content_object
         return render(
             request=request,
             template_name=self.template_name,
-            context={"object": obj, "object_type": content_object},
+            context={"object": self.object, "object_type": content_object},
         )
-
-    @classmethod
-    def get_queryset(cls, request: HttpRequest):
-        queryset = cls.model.objects.get_detail_qs(user=request.user)
-        return queryset

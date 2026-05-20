@@ -1,12 +1,13 @@
 from django.views.generic import ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.db.models import QuerySet, Q
 from logging import getLogger
 from todo.redis_client import r
-from .services.task import TaskDetail
-from .services.history import HistoryDetail
+from .services.task import TaskViewService
+from .services.history import HistoryViewService
+from .services.views import BaseViewService
 from .models import Task
 from .mixins import TaskMixin
 
@@ -40,28 +41,32 @@ class TaskListView(LoginRequiredMixin, ListView):
         return context
 
 
-class TaskDetailView(LoginRequiredMixin, View):
+class TaskView(LoginRequiredMixin, View):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ServiceClass = None
 
-    def dispatch(
-        self, request, pk: int, history_pk: int | None = None, *args, **kwargs
-    ):
+    def get_service(self, pk: int, history_pk: int | None):
         if history_pk:
-            self.ServiceClass = HistoryDetail
+            ServiceClass = HistoryViewService
+            qs = ServiceClass.get_queryset(self.request.user)
+            service = ServiceClass(qs, history_pk)
         else:
-            self.ServiceClass = TaskDetail
-        return super().dispatch(request, pk=pk, history_pk=history_pk, *args, **kwargs)
+            ServiceClass = TaskViewService
+            qs = ServiceClass.get_queryset(self.request.user)
+            service = ServiceClass(qs, pk)
+        return service
 
-    def get_queryset(self):
-        if not self.ServiceClass:
-            return QuerySet.none()
-        return self.ServiceClass.get_queryset(self.request)
+    def get_queryset(self, serviceClass: type[BaseViewService]):
+        return serviceClass.get_queryset(self.request.user)
 
     def get(self, request, pk: int, history_pk: int | None = None):
-        service = self.ServiceClass(self.get_queryset())
-        return service.get(request, pk, history_pk)
+        service = self.get_service(pk, history_pk)
+        return service.get(request)
+
+    def post(self, request, pk: int, history_pk: int | None = None):
+        service = self.get_service(pk, history_pk)
+        service.delete()
+        return redirect(service.redirect_url)
 
 
 class TaskCreateView(TaskMixin):

@@ -8,67 +8,70 @@
 
 {% block content %}
 <table class="table table-bordered table-striped">
-                <tbody>
-                    <tr>
-                        <th>ID</th>
-                        <td>{{ object.id }}</td>
-                    </tr>
+    <tbody>
+        <tr>
+            <th>ID</th>
+            <td>{{ object.id }}</td>
+        </tr>
 
-                    <tr>
-                        <th>Task Name</th>
-                        <td>{{ object.task_name }}</td>
-                    </tr>
+        <tr>
+            <th>Task Name</th>
+            <td>{{ object.task_name }}</td>
+        </tr>
 
-                    <tr>
-                        <th>Completed</th>
-                        <td>
-                            {% if object.completed %}
-                                <span class="badge bg-success">Yes</span>
-                            {% else %}
-                                <span class="badge bg-danger">No</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+        <tr>
+            <th>Completed</th>
+            <td>
+                {% if object.completed %}
+                    <span class="badge bg-success">Yes</span>
+                {% else %}
+                    <span class="badge bg-danger">No</span>
+                {% endif %}
+            </td>
+        </tr>
 
-                    <tr>
-                        <th>Task</th>
-                        <td>
-                            <a href="{{ object.task.get_absolute_url }}">
-                                {{ object.task }}
-                            </a>
-                        </td>
-                    </tr>
+        <tr>
+            <th>Task</th>
+            <td>
+                <a href="{{ object.task.get_absolute_url }}">
+                    {{ object.task }}
+                </a>
+            </td>
+        </tr>
 
-                    <tr>
-                        <th>State</th>
-                        <td>
-                            {{ object.state }}
-                        </td>
-                    </tr>
+        <tr>
+            <th>State</th>
+            <td>
+                {{ object.state }}
+            </td>
+        </tr>
 
-                    <tr>
-                        <th>Started At</th>
-                        <td>{{ object.started_at }}</td>
-                    </tr>
+        <tr>
+            <th>Started At</th>
+            <td>{{ object.started_at }}</td>
+        </tr>
 
-                    <tr>
-                        <th>Ended At</th>
-                        <td>{{ object.ended_at }}</td>
-                    </tr>
+        <tr>
+            <th>Ended At</th>
+            <td>{{ object.ended_at }}</td>
+        </tr>
 
-                    <tr>
-                        <th>Duration</th>
-                        <td>
-                            {{ object.ended_at|timeuntil:object.started_at }}
-                        </td>
-                    </tr>
+        <tr>
+            <th>Duration</th>
+            <td>
+                {{ object.ended_at|timeuntil:object.started_at }}
+            </td>
+        </tr>
 
-                    <tr>
-                        <th>Created</th>
-                        <td>{{ object.started_at|date:"d.m.Y H:i:s" }}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <tr>
+            <th>Created</th>
+            <td>{{ object.started_at|date:"d.m.Y H:i:s" }}</td>
+        </tr>
+    </tbody>
+</table>
+<div class="delete">
+    {% include 'tasks/task/delete.html'%}
+</div>
 {% endblock content %}
     
     
