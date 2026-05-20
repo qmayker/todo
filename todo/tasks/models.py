@@ -6,7 +6,9 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
+from .services.models import TaskTypeMixin
 from .querysets import OneTimeQuerySet, HistoryQuerySet, TaskQuerySet
+from .fields import TaskRelativeIdField
 
 
 class Task(models.Model):
@@ -43,7 +45,7 @@ class Task(models.Model):
         return reverse("tasks:detail", kwargs={"pk": self.pk})
 
 
-class OneTime(models.Model):
+class OneTime(models.Model, TaskTypeMixin):
     starts_at = models.DateTimeField(blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     started = models.BooleanField(default=False, blank=True)
@@ -77,18 +79,8 @@ class OneTime(models.Model):
     def is_completed(self):
         return self.completed
 
-    def get_task(self):
-        return self.task.first()
 
-    @property
-    def task_name(self):
-        return self.task.first().name
-
-    def get_absolute_url(self):
-        return reverse("tasks:detail", kwargs={"pk": self.task.first().pk})
-
-
-class Recurring(models.Model):
+class Recurring(models.Model, TaskTypeMixin):
     start_time = models.DateTimeField(blank=True)
     end_time = models.DateTimeField()
     duration_time = models.DurationField(blank=True, editable=False)
@@ -110,16 +102,6 @@ class Recurring(models.Model):
     @property
     def is_completed(self):
         return self.state.completed
-
-    def get_task(self):
-        return self.task.first()
-
-    def get_absolute_url(self):
-        return reverse("tasks:detail", kwargs={"pk": self.task.first().pk})
-
-    @property
-    def task_name(self):
-        return self.task.first().name
 
 
 class RecurringState(models.Model):
@@ -148,11 +130,17 @@ class RecurringStateHistory(models.Model):
     started_at = models.DateTimeField()
     ended_at = models.DateTimeField()
     task_name = models.CharField()
+    relative_id = TaskRelativeIdField()
     objects = HistoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["-ended_at"]
         indexes = [models.Index(fields=["ended_at"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["task_id", "relative_id"], name="unique_task_id_relative_id"
+            )
+        ]
 
     def save(self, *args, **kwargs):
         if not self.state:

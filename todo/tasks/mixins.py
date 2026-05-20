@@ -80,7 +80,7 @@ class TaskMixin(LoginRequiredMixin, View):
                 if isinstance(type_obj, Recurring):
                     type_obj.save()
                     state = recurring.RecurringServices.create_recurring_state(
-                        obj=type_obj, changed_data=type_form.changed_data
+                        obj=type_obj, changed_data=type_form.changed_data, logger=self.logger
                     )
                     service = recurring.RecurringServices(
                         obj_id=type_obj.id, logger=self.logger, r=self.r

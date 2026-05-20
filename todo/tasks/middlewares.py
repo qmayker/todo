@@ -1,6 +1,10 @@
 import zoneinfo
+from logging import getLogger
 from django.http import HttpRequest
 from django.utils import timezone
+
+
+logger = getLogger(__name__)
 
 
 class TimeZoneMiddleware:

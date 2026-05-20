@@ -15,6 +15,8 @@ from .admin_forms import RecurringAdminForm, OneTimeForm
 
 logger = logging.getLogger(__name__)
 
+# TODO override admin template
+
 
 class TaskInline(GenericTabularInline):
     model = Task
@@ -109,7 +111,7 @@ class RecurringAdmin(admin.ModelAdmin):
     def save_model(self, request, obj: Recurring, form, change):
         obj.save()
         state = RecurringServices.create_recurring_state(
-            changed_data=form.changed_data, obj=obj
+            changed_data=form.changed_data, obj=obj, logger=logger
         )
         if not form.changed_data:
             return

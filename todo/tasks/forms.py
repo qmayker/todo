@@ -1,5 +1,6 @@
 from logging import getLogger
 from django import forms
+from django.utils import timezone
 from .models import Task, OneTime, Recurring
 from .services import one_time, recurring
 
@@ -22,7 +23,8 @@ class RecurringForm(forms.ModelForm):
         }
 
     def clean(self):
-        cd = super().clean()
+        cd = self.cleaned_data
+        logger.info(f"{cd}, {timezone.get_current_timezone()}")
         changed_data = self.changed_data
         validation = recurring.RecurringValidation(cd, changed_data, logger)
         validation.validate()
@@ -39,7 +41,7 @@ class OneTimeForm(forms.ModelForm):
         }
 
     def clean(self):
-        cd = super().clean()
+        cd = self.cleaned_data
         changed_data = self.changed_data
         validation = one_time.OneTimeValidation(cd, changed_data, logger)
         validation.validate()

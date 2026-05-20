@@ -1,5 +1,7 @@
 from django.core.exceptions import ValidationError
 from tasks.models import Recurring, RecurringState, Task
+from scheduler.models import CeleryTask
+from scheduler.task_statuses import Status
 from .types import TaskSchedule
 from .validation import TimeValidation
 from .celery import CeleryService
@@ -14,9 +16,9 @@ class RecurringServices(CeleryService):
         obj = Recurring.objects.select_related().only("state__id").get(id=obj_id)
         self.state_service = RecurringStateServices(obj.state.id)
 
-    @staticmethod
+    @classmethod
     def create_recurring_state(
-        changed_data: list[str], obj: Recurring
+        cls, changed_data: list[str], obj: Recurring, logger
     ) -> RecurringState:
         if not changed_data:
             try:
@@ -34,6 +36,7 @@ class RecurringServices(CeleryService):
             },
         )
         state = update_res[0]
+
         return state
 
     @classmethod
@@ -68,7 +71,9 @@ class RecurringValidation(TimeValidation):
     def validate_end_time(self):
         if self.end_name not in self.changed_data:
             return
+        self.logger.info(f"{self.end} {self.now}")
         if self.end <= self.now:
+            self.logger.error("end_time error")
             raise ValidationError({self.end_name: "Must be in future, not past"})
 
     def validate(self):
